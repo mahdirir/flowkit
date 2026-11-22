@@ -3,6 +3,7 @@ main
 alpha
 *.exe
 *.exe~
+*.exe.manifest
 *.so
 *.dylib
 *.dll

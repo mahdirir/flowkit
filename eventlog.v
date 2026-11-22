@@ -4,18 +4,15 @@ import os
 import time
 import encoding.csv
 
-[heap]
 struct Eventlog {
 mut:
-	traces     map[string]Trace = map[string]Trace{}
+	traces     map[string]Trace
 	activities []string
 }
 
 fn (mut e Eventlog) get_case(id string) Trace {
 	return e.traces[id] or {
-		Trace{
-			id: id
-		}
+		Trace{ id: id }
 	}
 }
 
@@ -23,51 +20,110 @@ fn (mut e Eventlog) update_case(id string, t Trace) {
 	e.traces[id] = t
 }
 
-fn build_eventlog(dataset_path string) ?Eventlog {
+fn time_key(year int, month int, day int, hour int, minute int, second int) i64 {
+	return ((((i64(year) * 13 + i64(month)) * 32 + i64(day)) * 24 + i64(hour)) * 60 + i64(minute)) * 60 + i64(second)
+}
+
+fn parse_timestamp(s string) !time.Time {
+	if s.len < 19 {
+		return error('unsupported timestamp "${s}"')
+	}
+	if s[4] == `-` && s[7] == `-` && s[10] == ` ` {
+		y := s[0..4].int()
+		m := s[5..7].int()
+		d := s[8..10].int()
+		h := s[11..13].int()
+		mi := s[14..16].int()
+		se := s[17..19].int()
+		return checked_time(y, m, d, h, mi, se)
+	}
+	if (s[2] == `-` || s[2] == `/`) && (s[5] == `-` || s[5] == `/`) && s[10] == ` ` {
+		d := s[0..2].int()
+		m := s[3..5].int()
+		y := s[6..10].int()
+		h := s[11..13].int()
+		mi := s[14..16].int()
+		se := s[17..19].int()
+		return checked_time(y, m, d, h, mi, se)
+	}
+	return error('unsupported timestamp "${s}" (expected YYYY-MM-DD or DD-MM-YYYY)')
+}
+
+fn checked_time(y int, m int, d int, h int, mi int, se int) !time.Time {
+	if y < 1 || y > 9999 || m < 1 || m > 12 || d < 1 || d > 31 || h < 0 || h > 23 || mi < 0 || mi > 59 || se < 0 || se > 59 {
+		return error('timestamp out of range: ${y}-${m}-${d} ${h}:${mi}:${se}')
+	}
+	return time.Time{
+		year: y
+		month: m
+		day: d
+		hour: h
+		minute: mi
+		second: se
+	}
+}
+
+fn build_eventlog(path string, cfg Config) !Eventlog {
+	content := os.read_file(path) or {
+		return error('cannot read input file ${path}: ${err.msg()}')
+	}
+	mut reader := csv.new_reader(content, delimiter: cfg.delimiter)
+
+	mut max_col := cfg.case_col
+	if cfg.time_col > max_col {
+		max_col = cfg.time_col
+	}
+	if cfg.event_col > max_col {
+		max_col = cfg.event_col
+	}
+	if cfg.activity_col > max_col {
+		max_col = cfg.activity_col
+	}
+
 	mut e := Eventlog{}
-
-	content := os.read_file(dataset_path)?
-
-	mut csv_reader := csv.new_reader(content)
-
-	csv_reader.delimiter = `;`
-
-	_ := csv_reader.read()? // ignore header
-
+	mut row := 0
 	for {
-		cols := csv_reader.read() or { break } // break when EOF reached
-
-		cid := cols[0] // case id
-		eid := cols[2] // event id
-		ett := cols[3] // event name
-
-		ets := time.Time{
-			day: cols[1][0..2].int()
-			month: cols[1][3..5].int()
-			year: cols[1][6..10].int()
-			hour: cols[1][11..13].int()
-			minute: cols[1][14..16].int()
-			second: cols[1][17..19].int()
+		cols := reader.read() or {
+			break
+		}
+		if cols.len == 0 {
+			continue
+		}
+		row++
+		if row == 1 && !cfg.no_header {
+			continue
+		}
+		if cols.len <= max_col {
+			return error('row ${row}: expected at least ${max_col + 1} columns, got ${cols.len}')
+		}
+		cid := cols[cfg.case_col].trim_space()
+		act := cols[cfg.activity_col].trim_space()
+		if cid == '' || act == '' {
+			return error('row ${row}: empty case id or activity')
+		}
+		raw_time := cols[cfg.time_col].trim_space()
+		ts := parse_timestamp(raw_time) or {
+			return error('row ${row}: ${err.msg()}')
 		}
 
 		mut trace := e.get_case(cid)
-		mut event := Event{
-			id: eid
-			activity: ett
-			time: ets
+		ev := Event{
+			id: cols[cfg.event_col].trim_space()
+			activity: act
+			time: ts
+			key: time_key(ts.year, ts.month, ts.day, ts.hour, ts.minute, ts.second)
 		}
-
-		trace.add_event(event)
+		trace.add_event(ev)
 		e.update_case(cid, trace)
-
-		if ett !in e.activities {
-			e.activities << ett
+		if act !in e.activities {
+			e.activities << act
 		}
 	}
-
+	if e.traces.len == 0 {
+		return error('no events found in ${path}')
+	}
 	for _, mut t in e.traces {
 		t.sort_events()
 	}
-
 	return e
 }

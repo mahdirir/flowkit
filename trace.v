@@ -1,6 +1,5 @@
 module main
 
-[heap]
 struct Trace {
 	id string
 mut:
@@ -12,11 +11,12 @@ fn (mut t Trace) sort_events() {
 }
 
 fn (mut t Trace) add_event(e Event) {
-	for event in t.events {
-		if event.is_same(e) {
-			return
+	if e.id != '' {
+		for event in t.events {
+			if event.id == e.id {
+				return
+			}
 		}
 	}
-
 	t.events << e
 }
