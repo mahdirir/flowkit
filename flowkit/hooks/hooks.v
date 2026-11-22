@@ -133,19 +133,18 @@ pub fn normalize_activities() contracts.HookSpec {
 			mut log := model.EventLog{}
 			for _, trace in ctx.log.traces {
 				for event in trace.event_list() {
-					mut copy := event
 					activity := event.activity.trim_space()
 					if activity == event.activity {
 						log.add_event(event)
 					} else {
-						copy = model.Event{
+						normalized := model.Event{
 							id:       event.id
 							case_id:  event.case_id
 							activity: activity
 							time:     event.time
 							sort_key: event.sort_key
 						}
-						log.add_event(copy)
+						log.add_event(normalized)
 					}
 				}
 			}
@@ -187,7 +186,7 @@ pub fn command(name string, phase contracts.Phase, command_line string) contract
 			}
 			mut args := command_line.split(' ')
 			args << path
-			result := os.execute(args.join(' '))
+			result := os.exec(args)
 			if result.exit_code != 0 {
 				return error('hook ${name} failed (${result.exit_code}): ${result.output}')
 			}
