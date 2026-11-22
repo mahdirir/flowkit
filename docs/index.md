@@ -37,7 +37,7 @@ t2,2024-01-01 09:01:00,e4,B
 ```
 
 ```bash
-alpha-miner -d , -i example.csv
+alpha-miner -d , -i examples/tiny.csv
 ```
 
 ```text
