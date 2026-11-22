@@ -2,22 +2,22 @@
 title: Algorithm
 ---
 
-# The α-algorithm, as implemented here
+# Algorithms and internals
 
-The α-algorithm discovers a Petri net from an event log. This page describes
-the relations it computes and how places are found.
+This page describes the footprint relations, place discovery, the heuristic
+miner, conformance checks and the limits of the implementation.
 
 ## 1. Event log
 
-Rows are grouped by case id. Within each case, events are sorted by timestamp,
-using an explicit numeric key so that calendar comparison never depends on
-timezone or struct layout. Repeated event ids are ignored; repeated activities
-are preserved so self-loops remain visible.
+Rows are grouped by case id. Within each case, events are sorted by a numeric
+timestamp key, so ordering does not depend on struct layout. Repeated event ids
+are ignored; repeated activities are preserved so loops remain visible.
+Timestamps are digit-checked: a non-numeric component is rejected rather than
+silently converted to zero.
 
 ## 2. Footprint
 
 Let `a > b` mean "in some case, activity `b` directly follows activity `a`".
-For every ordered pair of activities:
 
 | Condition | Relation | Symbol |
 |---|---|---|
@@ -25,40 +25,57 @@ For every ordered pair of activities:
 | `a > b` and `b > a` | concurrency | `\|\|` |
 | otherwise | never-follow | `#` |
 
-The concurrency relation is set symmetrically for both directions.
+Concurrency is set symmetrically for both directions. The relation matrix is
+flat (`n × n`) and addressed by interned activity ids.
 
-## 3. Places
+## 3. Places (α and α+)
 
 A place is a pair `(A, B)` of non-empty activity sets such that:
 
 - activities inside `A` are pairwise in `#`;
 - activities inside `B` are pairwise in `#`;
 - every activity in `A` causally precedes every activity in `B`;
-- the pair is maximal: no larger pair satisfying the above contains it.
+- the pair is maximal.
 
 A naive implementation enumerates the powerset of activities — 2^39 for the
-bundled example log, which is impossible. Instead, every causal pair `(a, b)`
-is used as a seed and grown in all possible ways into larger valid pairs. A
-visited-state map prevents repeated work. Every completed pair is checked
-against the footprint once more before it is emitted as a place.
+bundled log. Instead, every causal pair `(a, b)` is grown into all larger valid
+pairs with a visited-state map, and each completed pair is re-validated against
+the footprint.
 
-Two extra places are always added:
+Two extra places are added: source `(∅, start activities)` and sink
+`(end activities, ∅)`. The sink uses **end** activities. α+ additionally adds
+`(a, a)` places for activities with self-loops.
 
-- source: `(∅, start activities)`
-- sink: `(end activities, ∅)`
+## 4. Heuristic miner
 
-Note that the sink uses **end** activities; using start activities there is a
-common implementation bug.
+The heuristic miner uses a dependency measure
+`dep(a,b) = |a>b| / (|a>b| + |b>a| + 1)` and a threshold (default 0.5).
+Successors and predecessors that are mutually concurrent are grouped into
+AND-splits and AND-joins. The threshold is validated before conversion.
 
-## 4. Arcs and export
+## 5. Conformance
 
-For a place `(A, B)`, arcs `a -> place` are created for `a ∈ A` and
-`place -> b` for `b ∈ B`. The result can be rendered as text, JSON or DOT.
+- **Footprint comparison** — log relations vs. relations implied by the net's places.
+- **Token replay** — per-case missing and remaining tokens, with a fitness value.
+- **Bounded alignments** — playout sequences up to a state/length limit, then
+  edit-distance alignment against each trace.
+- **Quality** — fitness, precision, generalization and simplicity proxies; the
+  `_proxy` suffix marks that these are structural estimates, not exact replay
+  measurements.
+
+## 6. Export
+
+Composite keys are length-prefixed so names containing separators cannot
+collide. PNML transition ids are sanitised to valid NCName identifiers. Output
+formats: text, JSON, DOT, PNML, BPMN and XES.
 
 ## Limitations
 
-The α-algorithm assumes a complete, noise-free event log. Real logs with
-missing, duplicated or out-of-order events can yield an over-fitted net with
-many places. Concurrency that never appears as a direct alternation in any
-case cannot be detected. The number of maximal pairs is bounded only by the
-footprint, so highly concurrent logs can produce large models.
+- α assumes a complete, noise-free log; real logs can overfit.
+- Concurrency that never appears as a direct alternation cannot be detected.
+- The number of maximal pairs is bounded only by the footprint; highly
+  concurrent logs can produce large models.
+- CSV and OCEL readers load the whole file into memory.
+- XES/OCEL parsing is a lightweight hand-rolled approximation, not a full
+  schema validator.
+- `--conformance` is only printed in text format.

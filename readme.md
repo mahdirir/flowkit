@@ -6,25 +6,24 @@
 
 **Process mining and activity log processing, in V.**
 
-`flowkit` turns activity logs into trustworthy process models. It is a VPM
-package (`metif12.flowkit`) and a single-binary CLI, with no runtime
-dependencies.
+`flowkit` turns activity logs into Petri nets and analysis results. It is a VPM
+package (`metif12.flowkit`) and a single-binary CLI, with no runtime dependencies.
 
-📖 **Docs:** <https://metif12.github.io/flowkit/>
+📖 **Documentation:** <https://metif12.github.io/flowkit/>
 
 ## What it does
 
-- **Ingest** CSV (streamed, configurable columns), XES 1.0 and OCEL 2.0 object-centric logs
+- **Ingest** CSV (single-pass parser, configurable columns), XES 1.0 and OCEL 2.0 logs
 - **Inspect** statistics: cases, events, activities, variants, frequencies, rework
 - **Filter** by time, activities, case size, frequency and top variants
 - **Discover** Petri nets with α, α+ (short loops) or the frequency-based heuristic miner
 - **Evaluate** token replay, bounded alignments, escaping-edge precision, generalization and simplicity
 - **Convert** process trees to Petri nets and BPMN 2.0
-- **Stream** very large logs with incremental DFG statistics
+- **Summarise** logs with incremental event counters and DFG statistics
 - **Encode** cases as one-hot, count, n-gram or TF-IDF feature tables
 - **Export** text, JSON, Graphviz DOT, PNML, BPMN and XES
 - **Extend** with custom readers, parsers, writers, algorithms and hooks — built-ins use the same registry
-- **Compose** all of the above through a pipeline API or the CLI
+- **Compose** everything through a pipeline API or the CLI
 
 ## Install
 
@@ -54,13 +53,20 @@ flowkit stats -i examples/tiny.csv -d ,
 # Render a Graphviz model
 flowkit -i examples/simple.csv -d , -f dot -o net.dot
 
-# XES in, PNML out
+# Convert and analyse
 flowkit convert -i log.xes -f pnml -o model.pnml
 flowkit -i log.xes -f bpmn -o model.bpmn
-flowkit -i huge.csv --stream
+flowkit -i examples/simple.csv -d , --conformance
 flowkit -i log.csv --encode tfidf -o features.csv
-flowkit --ocel-types -i example.jsonocel
-flowkit -i example.jsonocel --object-type Order
+flowkit -i examples/simple.csv -d , --stream
+
+# Object-centric logs
+flowkit --ocel-types -i examples/example.jsonocel
+flowkit -i examples/example.jsonocel --object-type Order
+
+# Extension discovery
+flowkit --list-formats
+flowkit -i log.csv -f json --hook after_write="python annotate.py"
 ```
 
 ## Use as a V library
@@ -68,23 +74,31 @@ flowkit -i example.jsonocel --object-type Order
 ```v
 import flowkit
 
-// One call: read a CSV or XES log and run the whole pipeline.
+// One call: read a CSV, XES or OCEL log and run the whole pipeline.
 result := flowkit.discover('log.xes')!
 println(flowkit.render_text(result, flowkit.TextOptions{}))
 println(flowkit.replay(result.log, result.net).fitness)
 println(flowkit.alignment_fitness(result.log, result.net, 200, 8))
 
-// Or compose your own pipeline.
+// Composed pipeline.
 log := flowkit.read_csv('log.csv', flowkit.ReadOptions{ delimiter: `,` })!
 result2 := flowkit.new_pipeline(log)
 	.with_method(.alpha_plus)
 	.with_filter(flowkit.Filter{ min_activity_count: 5 })
 	.run()
+
+// Extension-aware session.
+mut reg := flowkit.new_registry()!
+reg.add_algorithm(flowkit.AlgorithmSpec{ name: 'mine', discover: my_algorithm })!
+ctx := flowkit.new_context('log.csv', flowkit.Options{ algorithm: 'mine' })
+result3 := flowkit.run(mut reg, mut ctx)!
 ```
 
-Import individual packages for smaller binaries: `flowkit.model`,
-`flowkit.io`, `flowkit.analysis`, `flowkit.discovery`, `flowkit.conformance`,
-`flowkit.evaluation`, `flowkit.export`, `flowkit.pipeline`.
+Import individual packages for smaller binaries: `flowkit.model`, `flowkit.io`,
+`flowkit.analysis`, `flowkit.discovery`, `flowkit.conformance`,
+`flowkit.evaluation`, `flowkit.export`, `flowkit.pipeline`, `flowkit.process`,
+`flowkit.streaming`, `flowkit.ml`, `flowkit.ocel`, `flowkit.contracts`,
+`flowkit.registry`, `flowkit.builtins`, `flowkit.hooks`, `flowkit.session`.
 
 ## CLI
 
@@ -92,7 +106,7 @@ Import individual packages for smaller binaries: `flowkit.model`,
 flowkit [discover|stats|convert] [OPTIONS] [INPUT]
 flowkit completions <bash|zsh|powershell>
 
-  -i, --input FILE       Log file: .csv or .xes (default: dataset.csv)
+  -i, --input FILE       Log file: .csv, .xes or .jsonocel (default: dataset.csv)
   -o, --output FILE      Write to file (default: stdout)
   -f, --format FORMAT    text, json, dot, pnml, bpmn, xes (default: text)
   -d, --delimiter CHAR   CSV delimiter, or "tab" (default: ;)
@@ -104,7 +118,7 @@ flowkit completions <bash|zsh|powershell>
       --method NAME      alpha or alpha+ (default: alpha)
       --heuristic        Use the frequency-based heuristic miner
       --threshold N      Heuristic dependency threshold (default: 0.5)
-      --stream           Stream events and report DFG statistics only
+      --stream           Incremental event/DFG summary
       --encode NAME      Feature encoding: onehot, count, ngram, tfidf
       --ngram N          N-gram size (default: 2)
       --algorithm NAME   Discovery algorithm (alpha, alpha+, heuristic, or custom)
@@ -114,7 +128,7 @@ flowkit completions <bash|zsh|powershell>
       --ocel-types       List object types and their co-occurrence graph
       --min-count N      Minimum DFG edge frequency (default: 1)
       --max-variants N   Keep the N most frequent variants
-      --conformance      Print replay, alignment, precision and generalization
+      --conformance      Conformance metrics (text format only)
       --summary-only     Counts and quality only
       --explain          Explain each step in the output
       --dry-run          Validate input without writing output
@@ -130,13 +144,13 @@ Exit codes: `0` success, `1` runtime error, `2` usage error.
 
 ```
 flowkit/
-  model/        shared data types, flat footprint matrix
-  io/           streaming CSV reader, XES reader/writer
+  model/        shared data types, flat footprint matrix, length-prefixed keys
+  io/           single-pass CSV parser, XES and OCEL readers/writers
   analysis/     footprint, statistics, DFG, filtering
-  discovery/    alpha and alpha+ place discovery
-  conformance/  footprint comparison log vs model
-  evaluation/   quality proxies
-  export/       text, JSON, DOT, PNML
+  discovery/    alpha, alpha+ and heuristic place discovery
+  conformance/  footprint comparison, token replay, alignments
+  evaluation/   quality proxies and conformance metrics
+  export/       text, JSON, DOT, PNML, BPMN
   process/      process trees, Petri net and BPMN conversion
   streaming/    incremental event and DFG counters
   ml/           one-hot, count, n-gram and TF-IDF encodings
@@ -148,41 +162,55 @@ flowkit/
   session/      extension-aware stage pipeline
   pipeline/     legacy fixed-stage composition
 cmd/flowkit/    CLI
-benchmarks/     reproducible throughput harness
+benchmarks/     reproducible per-stage throughput harness
 docs/           GitHub Pages site
+examples/       small logs and a sample plugin package
 ```
 
 The footprint uses interned activity ids and a flat `n × n` matrix, so relation
 lookups are O(1) and allocation-free in the hot loops. Places are grown from
-causal seeds rather than enumerating all 2ⁿ activity subsets.
+causal seeds rather than enumerating all 2ⁿ activity subsets. Composite keys
+are length-prefixed, so activity names containing separators cannot collide.
 
 ## Tests and benchmarks
 
 ```bash
-v test ./flowkit ./cmd/flowkit
+v test ./flowkit ./cmd/flowkit ./examples/plugins
 v fmt -check flowkit cmd benchmarks
 v vet ./flowkit ./cmd/flowkit
 v run benchmarks/bench.v -- dataset.csv
 ```
 
+**15 test files pass.** The regression suite in `flowkit/session/regression_test.v`
+covers the review fixes (missing case lookup, strict timestamps, key collisions,
+short variants, filtered context).
+
 Measured on the bundled 39 MB BPI log (466,737 events, 46,616 cases) on the
-development machine:
+development machine. Timings vary between runs; a representative run:
 
 | Stage | Time |
 |---|---:|
-| CSV read | 1,939 ms |
-| Footprint | 76 ms |
-| Discovery | 132 ms |
-| Statistics | 382 ms |
-| Quality | 79 ms |
-| Conformance | 76 ms |
-| DFG | 76 ms |
-| **Total** | **2,759 ms** |
+| CSV read | 1,957 ms |
+| Footprint | 78 ms |
+| Discovery | 134 ms |
+| Statistics | 587 ms |
+| Quality | 106 ms |
+| Conformance | 86 ms |
+| DFG | 83 ms |
+| **Total** | **3,031 ms** |
 
-That is ≈169,000 events/s and ≈14.2 MB/s. The reader was rewritten as a
-single-pass byte scanner (down from 3,953 ms), and quality evaluation now
-builds a set of modelled pairs once instead of scanning every place for every
-activity pair (down from 325 ms). Raw file I/O is only ~10 ms.
+That is ≈154,000 events/s and ≈12.9 MB/s (other runs measured 2.88 s /
+162,000 events/s). Raw file I/O is only ~11 ms; parsing dominates.
+
+## Limitations
+
+- The α-algorithm assumes a complete, noise-free log; real logs can overfit.
+- The CSV and OCEL readers load the whole file into memory; `--stream`
+  summarises events incrementally but does not avoid that initial read.
+- The XES and OCEL readers are small hand-rolled parsers, not full validators.
+- `--conformance` prints its report only in `text` format; other formats emit a
+  warning.
+- Highly concurrent logs can still produce large models.
 
 ## Dataset
 
@@ -193,8 +221,8 @@ activity pair (down from 325 ms). Raw file I/O is only ~10 ms.
 ## Extending
 
 Every format and algorithm is a registered extension, so third-party code uses
-the same API as the built-ins. External hooks can be written in any language.
-See the [extension guide](docs/extending.md) and
+the same API as built-ins. External hooks can be written in any language. See
+the [extension guide](docs/extending.md) and
 [`examples/plugins`](examples/plugins).
 
 ## License

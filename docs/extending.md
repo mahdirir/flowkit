@@ -20,7 +20,9 @@ API to learn.
 | `HookSpec` | run at one of six pipeline phases |
 
 The phases are `before_read`, `after_read`, `before_discover`,
-`after_discover`, `before_write` and `after_write`.
+`after_discover`, `before_write` and `after_write`. Duplicate names are rejected
+for readers, parsers, writers, renderers, algorithms, and for hooks with the
+same name *and* phase.
 
 ## Registering an extension
 
@@ -39,23 +41,25 @@ result := flowkit.run(mut reg, mut ctx)!
 ```
 
 A full example package — custom reader, algorithm and hook — lives in
-[`examples/plugins/custom.v`](https://github.com/metif12/flowkit/blob/main/examples/plugins/custom.v).
+[`examples/plugins/custom.v`](https://github.com/metif12/flowkit/blob/main/examples/plugins/custom.v),
+with a test that registers it.
 
 ## External command hooks
 
 For runtime extensions written in any language, register a command hook:
 
 ```bash
-flowkit -i log.csv --hook after_discover="python annotate.py"
+flowkit -i log.csv --hook after_write="python annotate.py"
 ```
 
-flowkit writes a flat JSON context file and passes its path as the final
-argument. The program edits the file in place; recognised keys (`path`,
-`output`, `rendered` and any metadata keys) are read back into the context. See
+flowkit writes a flat JSON context file with a UUID-based name in the system
+temp directory and passes its path as the final argument. The program edits the
+file in place; recognised keys (`path`, `output`, `rendered` and any metadata
+keys) are read back into the context. See
 [`examples/plugins/annotate.py`](https://github.com/metif12/flowkit/blob/main/examples/plugins/annotate.py).
 
-Commands are split on spaces and executed without a shell. Hooks are opt-in;
-no external program runs unless you register one.
+Commands are split on spaces and executed via an argument array without a
+shell. Hooks are opt-in; no external program runs unless you register one.
 
 ## Discovery
 
@@ -63,8 +67,23 @@ no external program runs unless you register one.
 flowkit --list-formats
 ```
 
-This prints all registered readers, writers, renderers and algorithms, plus the
-hook count. Unknown format or algorithm names list the available choices.
+Example output:
+
+```
+readers:    csv, ocel, xes
+writers:    bpmn, dot, json, pnml, text, xes
+algorithms: alpha, alpha+, heuristic
+hooks:      0
+```
+
+Unknown format or algorithm names list the available choices.
+
+## Context contract
+
+Hooks receive a `Context` with `path`, `options`, `log`, `footprint`, `net`,
+`result`, `output`, `rendered` and `metadata`. The session updates `ctx.log`
+after filtering, so `after_discover` hooks see the same log the algorithm used.
+`--dry-run` withholds the output path from the context, so no file is written.
 
 ## Compatibility
 
