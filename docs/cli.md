@@ -36,6 +36,7 @@ Progress goes to stderr; results go to stdout or `--output`.
 | `--method NAME` | `alpha` or `alpha+` |
 | `--min-count N` | Minimum DFG edge frequency |
 | `--max-variants N` | Keep only the N most frequent variants |
+| `--conformance` | Print replay, alignment, precision and generalization |
 | `--summary-only` | Counts and quality only |
 | `--explain` | Explain the steps in text output |
 | `--dry-run` | Validate input without writing output |

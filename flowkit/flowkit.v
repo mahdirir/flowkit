@@ -37,6 +37,8 @@ pub type Result = pl.Result
 pub type TextOptions = export.TextOptions
 pub type Quality = evaluation.Quality
 pub type ConformanceReport = conformance.Report
+pub type ReplayResult = conformance.ReplayResult
+pub type Alignment = conformance.Alignment
 
 pub struct Options {
 pub:
@@ -110,6 +112,30 @@ pub fn check_footprints(log model.EventLog, net model.PetriNet) conformance.Repo
 
 pub fn evaluate(log model.EventLog, net model.PetriNet) evaluation.Quality {
 	return evaluation.evaluate(log, net)
+}
+
+pub fn replay(log model.EventLog, net model.PetriNet) conformance.ReplayResult {
+	return conformance.replay(log, net)
+}
+
+pub fn align(log model.EventLog, net model.PetriNet, max_states int, max_len int) []conformance.Alignment {
+	return conformance.align(log, net, max_states, max_len)
+}
+
+pub fn replay_fitness(log model.EventLog, net model.PetriNet) f64 {
+	return evaluation.replay_fitness(log, net)
+}
+
+pub fn alignment_fitness(log model.EventLog, net model.PetriNet, max_states int, max_len int) f64 {
+	return evaluation.alignment_fitness(log, net, max_states, max_len)
+}
+
+pub fn precision(log model.EventLog, net model.PetriNet, min_count u32) f64 {
+	return evaluation.escaping_edge_precision(log, net, min_count)
+}
+
+pub fn generalization(log model.EventLog, net model.PetriNet) f64 {
+	return evaluation.generalization(log, net)
 }
 
 pub fn render_text(result pl.Result, opts export.TextOptions) string {

@@ -18,7 +18,7 @@ dependencies.
 - **Inspect** statistics: cases, events, activities, variants, frequencies, rework
 - **Filter** by time, activities, case size, frequency and top variants
 - **Discover** Petri nets with the α-algorithm or α+ (short loops)
-- **Evaluate** fitness, precision and simplicity proxies plus footprint conformance
+- **Evaluate** token replay, bounded alignments, escaping-edge precision, generalization and simplicity
 - **Export** text, JSON, Graphviz DOT, PNML and XES
 - **Compose** all of the above through a pipeline API or the CLI
 
@@ -62,6 +62,8 @@ import flowkit
 // One call: read a CSV or XES log and run the whole pipeline.
 result := flowkit.discover('log.xes')!
 println(flowkit.render_text(result, flowkit.TextOptions{}))
+println(flowkit.replay(result.log, result.net).fitness)
+println(flowkit.alignment_fitness(result.log, result.net, 200, 8))
 
 // Or compose your own pipeline.
 log := flowkit.read_csv('log.csv', flowkit.ReadOptions{ delimiter: `,` })!
@@ -93,6 +95,7 @@ flowkit completions <bash|zsh|powershell>
       --method NAME      alpha or alpha+ (default: alpha)
       --min-count N      Minimum DFG edge frequency (default: 1)
       --max-variants N   Keep the N most frequent variants
+      --conformance      Print replay, alignment, precision and generalization
       --summary-only     Counts and quality only
       --explain          Explain each step in the output
       --dry-run          Validate input without writing output

@@ -46,6 +46,7 @@ net := flowkit.discover_net(log, fp, .alpha)
 - `PetriNet` — `places`, `arcs`, `start_activities`, `end_activities`
 - `Result` — `log`, `footprint`, `net`, `stats`, `quality`, `report`, `dfg`
 - `Quality` — `fitness_proxy`, `precision_proxy`, `simplicity`, `arc_degree`
+- Conformance — `replay(log, net)`, `align(log, net, max_states, max_len)`, `replay_fitness`, `alignment_fitness`, `precision`, `generalization`
 
 ## Error handling
 

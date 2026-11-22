@@ -31,6 +31,7 @@ mut:
 	summary_only bool
 	explain      bool
 	dry_run      bool
+	conformance  bool
 	quiet        bool
 	verbose      bool
 }
@@ -160,6 +161,11 @@ fn parse(args []string) Outcome {
 			i++
 			continue
 		}
+		if arg == '--conformance' {
+			o.conformance = true
+			i++
+			continue
+		}
 		if arg == '--dry-run' {
 			o.dry_run = true
 			i++
@@ -286,6 +292,7 @@ fn help() {
 	println('      --max-variants N   Keep the N most frequent variants')
 	println('      --summary-only     Counts and quality only')
 	println('      --explain          Explain each step in the output')
+	println('      --conformance      Print replay, alignment, precision and generalization')
 	println('      --dry-run          Validate input without writing output')
 	println('  -q, --quiet            Suppress progress messages')
 	println('  -v, --verbose          Print extra detail')
@@ -379,6 +386,19 @@ fn execute(action Action, o Options) int {
 				explain:      o.explain
 			})
 		}
+	}
+	if o.conformance && (o.format == 'text' || o.format == 'txt') {
+		replay_result := flowkit.replay(result.log, result.net)
+		alignment := flowkit.alignment_fitness(result.log, result.net, 200, 8)
+		precision := flowkit.precision(result.log, result.net, 1)
+		generalized := flowkit.generalization(result.log, result.net)
+		output += '\nConformance:\n'
+		output += '  Replay fitness:    ${replay_result.fitness:.3}\n'
+		output += '  Alignment fitness: ${alignment:.3}\n'
+		output += '  Precision:         ${precision:.3}\n'
+		output += '  Generalization:    ${generalized:.3}\n'
+		output += '  Missing tokens:    ${replay_result.missing_tokens}\n'
+		output += '  Remaining tokens:  ${replay_result.remaining_tokens}\n'
 	}
 	if o.output == '' {
 		print(output)

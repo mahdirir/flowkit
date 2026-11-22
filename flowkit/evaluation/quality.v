@@ -6,6 +6,8 @@
 module evaluation
 
 import flowkit.model
+import flowkit.analysis
+import flowkit.conformance
 
 pub struct Quality {
 pub:
@@ -69,6 +71,78 @@ pub fn evaluate(log model.EventLog, net model.PetriNet) Quality {
 		places:          net.places.len
 		arcs:            net.arcs.len
 	}
+}
+
+pub fn replay_fitness(log model.EventLog, net model.PetriNet) f64 {
+	return conformance.replay(log, net).fitness
+}
+
+pub fn alignment_fitness(log model.EventLog, net model.PetriNet, max_states int, max_len int) f64 {
+	alignments := conformance.align(log, net, max_states, max_len)
+	if alignments.len == 0 {
+		return 1.0
+	}
+	mut total := 0.0
+	for alignment in alignments {
+		total += alignment.fitness
+	}
+	return total / f64(alignments.len)
+}
+
+pub fn escaping_edge_precision(log model.EventLog, net model.PetriNet, min_count u32) f64 {
+	log_dfg := analysis.build_dfg(log, 1)
+	mut observed := map[string]bool{}
+	for edge in log_dfg.edges {
+		observed['${edge.from}>${edge.to}'] = true
+	}
+
+	mut max_len := 2
+	for _, trace in log.traces {
+		if trace.raw_events().len + 2 > max_len {
+			max_len = trace.raw_events().len + 2
+		}
+	}
+	sequences := conformance.model_sequences(net, 500, max_len)
+	mut counts := map[string]int{}
+	for sequence in sequences {
+		for i := 1; i < sequence.len; i++ {
+			counts['${sequence[i - 1]}>${sequence[i]}']++
+		}
+	}
+	mut model_edges := 0
+	mut escaping := 0
+	for edge, count in counts {
+		if u32(count) < min_count {
+			continue
+		}
+		model_edges++
+		if edge !in observed {
+			escaping++
+		}
+	}
+	if model_edges == 0 {
+		return 1.0
+	}
+	return 1.0 - f64(escaping) / f64(model_edges)
+}
+
+pub fn generalization(log model.EventLog, net model.PetriNet) f64 {
+	mut transitions := []string{}
+	for arc in net.arcs {
+		if arc.transition !in transitions {
+			transitions << arc.transition
+		}
+	}
+	if transitions.len == 0 {
+		return 1.0
+	}
+	mut seen := 0
+	for activity in log.activities {
+		if activity in transitions {
+			seen++
+		}
+	}
+	return f64(seen) / f64(transitions.len)
 }
 
 fn footprint_from(log model.EventLog) model.Footprint {
