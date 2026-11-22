@@ -60,7 +60,31 @@ fn string_field(obj string, key string) string {
 		return ''
 	}
 	end := obj[start + 1..].index('"') or { return '' }
-	return obj[start + 1..start + 1 + end]
+	return json_unescape(obj[start + 1..start + 1 + end])
+}
+
+fn json_unescape(s string) string {
+	mut b := strings.Builder{}
+	mut i := 0
+	for i < s.len {
+		if s[i] == 92 && i + 1 < s.len {
+			next := s[i + 1]
+			if next == `n` {
+				b.write_string('\n')
+			} else if next == `r` {
+				b.write_string('\r')
+			} else if next == `t` {
+				b.write_string('\t')
+			} else {
+				b.write_string(s[i + 1..i + 2])
+			}
+			i += 2
+			continue
+		}
+		b.write_string(s[i..i + 1])
+		i++
+	}
+	return b.str()
 }
 
 fn array_field(obj string, key string) string {
@@ -334,15 +358,15 @@ pub fn object_type_graph(log OcelLog) []TypeRelation {
 		types.sort()
 		for i := 0; i < types.len; i++ {
 			for j := i + 1; j < types.len; j++ {
-				counts['${types[i]}>${types[j]}']++
+				counts[model.pair_key(types[i], types[j])]++
 			}
 		}
 	}
 	mut out := []TypeRelation{}
 	for key, count in counts {
-		parts := key.split('>')
-		if parts.len == 2 {
-			out << TypeRelation{ first: parts[0], second: parts[1], count: count }
+		first, second := model.split_pair(key)
+		if first != '' || second != '' {
+			out << TypeRelation{ first: first, second: second, count: count }
 		}
 	}
 	out.sort_with_compare(fn (a &TypeRelation, b &TypeRelation) int {
@@ -363,7 +387,7 @@ pub fn ocdfg(log OcelLog, object_type string, min_count u32) model.Dfg {
 	for _, trace in flat.traces {
 		events := trace.raw_events()
 		for i := 1; i < events.len; i++ {
-			counts['${events[i - 1].activity}>${events[i].activity}']++
+			counts[model.pair_key(events[i - 1].activity, events[i].activity)]++
 		}
 	}
 	mut edges := []model.DfgEdge{}
@@ -371,9 +395,9 @@ pub fn ocdfg(log OcelLog, object_type string, min_count u32) model.Dfg {
 		if count < min_count {
 			continue
 		}
-		parts := key.split('>')
-		if parts.len == 2 {
-			edges << model.DfgEdge{ from: parts[0], to: parts[1], count: count }
+		from, to := model.split_pair(key)
+		if from != '' || to != '' {
+			edges << model.DfgEdge{ from: from, to: to, count: count }
 		}
 	}
 	return model.Dfg{ activities: flat.activities.clone(), edges: edges }

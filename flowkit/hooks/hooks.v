@@ -3,7 +3,7 @@
 module hooks
 
 import os
-import time
+import rand
 import strings
 import contracts
 import flowkit.model
@@ -177,7 +177,7 @@ pub fn command(name string, phase contracts.Phase, command_line string) contract
 		phase:   phase
 		command: command_line
 		run:     fn [command_line, name] (mut ctx contracts.Context) ! {
-			path := os.vtmp_dir() + '/flowkit_hook_' + time.ticks().str() + '.json'
+			path := os.vtmp_dir() + '/flowkit_hook_' + rand.uuid_v4() + '.json'
 			os.write_file(path, encode_context(ctx)) or {
 				return error('cannot write hook context: ${err.msg()}')
 			}

@@ -16,13 +16,27 @@ pub fn parse_timestamp(raw string) !time.Time {
 	if sep == 0 {
 		return error('unsupported timestamp "${s}"')
 	}
+	mut y := 0
+	mut m := 0
+	mut d := 0
 	if s[4] == `-` && s[7] == `-` {
-		return checked(s[0..4].int(), s[5..7].int(), s[8..10].int(), s[11..13].int(), s[14..16].int(), s[17..19].int())
+		y = digits(s, 0, 4)
+		m = digits(s, 5, 7)
+		d = digits(s, 8, 10)
+	} else if (s[2] == `-` || s[2] == `/`) && (s[5] == `-` || s[5] == `/`) {
+		d = digits(s, 0, 2)
+		m = digits(s, 3, 5)
+		y = digits(s, 6, 10)
+	} else {
+		return error('unsupported timestamp "${s}" (expected YYYY-MM-DD or DD-MM-YYYY)')
 	}
-	if (s[2] == `-` || s[2] == `/`) && (s[5] == `-` || s[5] == `/`) {
-		return checked(s[6..10].int(), s[3..5].int(), s[0..2].int(), s[11..13].int(), s[14..16].int(), s[17..19].int())
+	h := digits(s, 11, 13)
+	mi := digits(s, 14, 16)
+	se := digits(s, 17, 19)
+	if y < 0 || m < 0 || d < 0 || h < 0 || mi < 0 || se < 0 {
+		return error('non-numeric timestamp "${s}"')
 	}
-	return error('unsupported timestamp "${s}" (expected YYYY-MM-DD or DD-MM-YYYY)')
+	return checked(y, m, d, h, mi, se)
 }
 
 fn checked(y int, m int, d int, h int, mi int, se int) !time.Time {

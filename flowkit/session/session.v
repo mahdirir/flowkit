@@ -42,6 +42,7 @@ pub fn run(mut r registry.Registry, mut ctx contracts.Context) !contracts.Result
 	for filter in ctx.options.filters {
 		log = analysis.filter(log, filter)
 	}
+	ctx.log = log
 	footprint := analysis.build_footprint(log)
 
 	run_hooks(r, .before_discover, mut ctx)!

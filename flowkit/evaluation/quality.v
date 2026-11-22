@@ -26,7 +26,7 @@ pub fn evaluate(log model.EventLog, net model.PetriNet) Quality {
 	for place in net.places {
 		for a in place.inputs {
 			for b in place.outputs {
-				modelled_pairs['${a}>${b}'] = true
+				modelled_pairs[model.pair_key(a, b)] = true
 			}
 		}
 	}
@@ -38,7 +38,7 @@ pub fn evaluate(log model.EventLog, net model.PetriNet) Quality {
 				continue
 			}
 			observed++
-			if modelled_pairs['${log.activities[a]}>${log.activities[b]}'] {
+			if modelled_pairs[model.pair_key(log.activities[a], log.activities[b])] {
 				covered++
 			}
 		}
@@ -79,7 +79,7 @@ pub fn escaping_edge_precision(log model.EventLog, net model.PetriNet, min_count
 	log_dfg := analysis.build_dfg(log, 1)
 	mut observed := map[string]bool{}
 	for edge in log_dfg.edges {
-		observed['${edge.from}>${edge.to}'] = true
+		observed[model.pair_key(edge.from, edge.to)] = true
 	}
 
 	mut max_len := 2
@@ -92,7 +92,7 @@ pub fn escaping_edge_precision(log model.EventLog, net model.PetriNet, min_count
 	mut counts := map[string]int{}
 	for sequence in sequences {
 		for i := 1; i < sequence.len; i++ {
-			counts['${sequence[i - 1]}>${sequence[i]}']++
+			counts[model.pair_key(sequence[i - 1], sequence[i])]++
 		}
 	}
 	mut model_edges := 0

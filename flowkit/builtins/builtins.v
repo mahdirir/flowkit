@@ -42,7 +42,22 @@ fn builtin_alpha_plus(log model.EventLog, fp model.Footprint, opts contracts.Opt
 fn builtin_heuristic(log model.EventLog, fp model.Footprint, opts contracts.Options) !model.PetriNet {
 	mut threshold := 0.5
 	if opts.metadata['threshold'] != '' {
-		threshold = opts.metadata['threshold'].f64()
+		value := opts.metadata['threshold']
+		mut valid := value.len > 0
+		mut dots := 0
+		for c in value {
+			if c == `.` {
+				dots++
+				if dots > 1 {
+					valid = false
+				}
+			} else if c != `-` && (c < 48 || c > 57) {
+				valid = false
+			}
+		}
+		if valid {
+			threshold = value.f64()
+		}
 	}
 	return discovery.discover_heuristic(log, fp, threshold)
 }

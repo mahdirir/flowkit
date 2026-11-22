@@ -44,5 +44,5 @@ fn test_dot_and_pnml() {
 	assert dot.contains('"A" -> p0;')
 	pnml := render_pnml(r.net)
 	assert pnml.contains('<place id="p0">')
-	assert pnml.contains('<transition id="t-A">')
+	assert pnml.contains('<transition id="t_0_A">')
 }

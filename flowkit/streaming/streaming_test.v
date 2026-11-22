@@ -11,7 +11,7 @@ fn test_push() {
 	assert stats.events == 4
 	assert stats.case_count() == 2
 	assert stats.activity_count() == 2
-	assert stats.edges['A>B'] == 2
+	assert stats.edges[model.pair_key('A', 'B')] == 2
 	assert stats.top_activities(1)[0] == 'A' || stats.top_activities(1)[0] == 'B'
 }
 

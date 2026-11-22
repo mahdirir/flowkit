@@ -111,8 +111,14 @@ pub fn from_log(log model.EventLog) ProcessTree {
 			suffix = k
 		}
 	}
-	if prefix + suffix > variants[0].len {
-		suffix = variants[0].len - prefix
+	mut min_len := variants[0].len
+	for variant in variants {
+		if variant.len < min_len {
+			min_len = variant.len
+		}
+	}
+	if prefix + suffix > min_len {
+		suffix = min_len - prefix
 	}
 
 	mut middles := []ProcessTree{}

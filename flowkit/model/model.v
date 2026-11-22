@@ -96,6 +96,9 @@ mut:
 }
 
 pub fn (e EventLog) trace(id string) ?Trace {
+	if id !in e.traces {
+		return none
+	}
 	return e.traces[id]
 }
 
@@ -152,6 +155,45 @@ pub fn (e EventLog) activity_id(name string) int {
 
 pub fn timestamp_key(year int, month int, day int, hour int, minute int, second int) i64 {
 	return ((((i64(year) * 13 + i64(month)) * 32 + i64(day)) * 24 + i64(hour)) * 60 + i64(minute)) * 60 + i64(second)
+}
+
+// join_key encodes strings unambiguously: each item is length-prefixed, so
+// activity names containing separators cannot collide.
+pub fn join_key(items []string) string {
+	mut out := ''
+	for item in items {
+		out += '${item.len}:${item}'
+	}
+	return out
+}
+
+pub fn split_key(key string) []string {
+	mut out := []string{}
+	mut i := 0
+	for i < key.len {
+		colon := key[i..].index(':') or { break }
+		end := i + colon
+		n := key[i..end].int()
+		start := end + 1
+		if start + n > key.len {
+			break
+		}
+		out << key[start..start + n]
+		i = start + n
+	}
+	return out
+}
+
+pub fn pair_key(a string, b string) string {
+	return join_key([a, b])
+}
+
+pub fn split_pair(key string) (string, string) {
+	parts := split_key(key)
+	if parts.len == 2 {
+		return parts[0], parts[1]
+	}
+	return '', ''
 }
 
 // Footprint stores relations in a flat n*n matrix addressed by interned

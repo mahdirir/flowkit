@@ -505,7 +505,9 @@ fn execute(action Action, o Options) int {
 	}
 
 	mut ctx := flowkit.new_context(o.input, opts)
-	ctx.output = o.output
+	if !o.dry_run {
+		ctx.output = o.output
+	}
 	mut reg := flowkit.new_registry() or {
 		eprintln('flowkit: error: ${err.msg()}')
 		return 1
@@ -560,6 +562,9 @@ fn execute(action Action, o Options) int {
 		} else {
 			flowkit.features_csv(features)
 		}
+	}
+	if o.conformance && !(o.format == 'text' || o.format == 'txt') {
+		eprintln('flowkit: warning: --conformance report is printed in text format only')
 	}
 	if o.conformance && (o.format == 'text' || o.format == 'txt') {
 		replay_result := flowkit.replay(result.log, result.net)

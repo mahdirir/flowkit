@@ -171,13 +171,17 @@ pub fn render_pnml(net model.PetriNet) string {
 			transitions << arc.transition
 		}
 	}
-	for t in transitions {
-		b.writeln('      <transition id="t-${xml(t)}"><name><text>${xml(t)}</text></name></transition>')
+	mut ids := map[string]string{}
+	for i, t in transitions {
+		id := 't_${i}_${pnml_name(t)}'
+		ids[t] = id
+		b.writeln('      <transition id="${id}"><name><text>${xml(t)}</text></name></transition>')
 	}
 	mut arc_id := 0
 	for arc in net.arcs {
-		source := if arc.is_input { 't-${xml(arc.transition)}' } else { 'p${arc.place}' }
-		target := if arc.is_input { 'p${arc.place}' } else { 't-${xml(arc.transition)}' }
+		tid := ids[arc.transition]
+		source := if arc.is_input { tid } else { 'p${arc.place}' }
+		target := if arc.is_input { 'p${arc.place}' } else { tid }
 		b.writeln('      <arc id="a${arc_id}" source="${source}" target="${target}"/>')
 		arc_id++
 	}
@@ -185,6 +189,22 @@ pub fn render_pnml(net model.PetriNet) string {
 	b.writeln('  </net>')
 	b.writeln('</pnml>')
 	return b.str()
+}
+
+fn pnml_name(s string) string {
+	mut out := ''
+	for i, c in s {
+		ok := (c >= 48 && c <= 57) || (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || c == `_` || c == `-` || c == `.`
+		if ok {
+			out += s[i..i + 1]
+		} else {
+			out += '_'
+		}
+	}
+	if out == '' {
+		return 'transition'
+	}
+	return out
 }
 
 fn xml(s string) string {

@@ -111,6 +111,13 @@ pub fn (mut r Registry) add_algorithm(spec contracts.AlgorithmSpec) ! {
 }
 
 pub fn (mut r Registry) add_hook(spec contracts.HookSpec) ! {
+	mut names := []string{}
+	for hook in r.hooks {
+		names << '${hook.phase.str()}:${hook.name}'
+	}
+	if taken(names, '${spec.phase.str()}:${spec.name}') {
+		return error('hook "${spec.name}" (${spec.phase.str()}) is already registered')
+	}
 	r.hooks << spec
 }
 

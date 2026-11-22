@@ -32,7 +32,7 @@ pub fn (mut s StreamStats) push(case_id string, activity string) {
 	}
 	previous := s.last[case_id]
 	if previous != '' {
-		edge := '${previous}>${activity}'
+		edge := model.pair_key(previous, activity)
 		s.edges[edge]++
 	}
 	s.last[case_id] = activity
@@ -52,9 +52,9 @@ pub fn (s StreamStats) dfg(min_count u32) model.Dfg {
 		if count < min_count {
 			continue
 		}
-		parts := edge.split('>')
-		if parts.len == 2 {
-			edges << model.DfgEdge{ from: parts[0], to: parts[1], count: count }
+		from, to := model.split_pair(edge)
+		if from != '' || to != '' {
+			edges << model.DfgEdge{ from: from, to: to, count: count }
 		}
 	}
 	edges.sort_with_compare(fn (a &model.DfgEdge, b &model.DfgEdge) int {
