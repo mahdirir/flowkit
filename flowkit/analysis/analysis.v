@@ -2,14 +2,16 @@
 // statistics, variants and the directly-follows graph, plus log filtering.
 module analysis
 
+import strings
 import flowkit.model
 
 fn variant_key(trace model.Trace) string {
-	mut parts := []string{}
+	mut b := strings.Builder{}
 	for event in trace.raw_events() {
-		parts << event.activity
+		b.write_string(event.activity)
+		b.write_string('>')
 	}
-	return parts.join('>')
+	return b.str()
 }
 
 pub fn build_footprint(log model.EventLog) model.Footprint {
@@ -55,13 +57,13 @@ pub fn compute_stats(log model.EventLog) model.Stats {
 		events += trace.raw_events().len
 		variant := variant_key(trace)
 		variant_freq[variant]++
-		mut seen := map[string]bool{}
+		mut seen := []string{}
 		for event in trace.raw_events() {
 			activity_freq[event.activity]++
-			if seen[event.activity] {
+			if event.activity in seen {
 				rework[event.activity]++
 			}
-			seen[event.activity] = true
+			seen << event.activity
 			if min_key == 0 || event.sort_key < min_key {
 				min_key = event.sort_key
 			}

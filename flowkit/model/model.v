@@ -123,9 +123,19 @@ pub fn (mut e EventLog) add_event(ev Event) {
 	mut trace := e.traces[ev.case_id] or { Trace{ id: ev.case_id } }
 	trace.add_event(ev)
 	e.traces[ev.case_id] = trace
-	if ev.activity !in e.activities {
+	if e.index[ev.activity] == 0 {
 		e.activities << ev.activity
-		e.index[ev.activity] = e.activities.len - 1
+		e.index[ev.activity] = e.activities.len
+	}
+}
+
+pub fn (mut e EventLog) add_event_unchecked(ev Event) {
+	mut trace := e.traces[ev.case_id] or { Trace{ id: ev.case_id } }
+	trace.events << ev
+	e.traces[ev.case_id] = trace
+	if e.index[ev.activity] == 0 {
+		e.activities << ev.activity
+		e.index[ev.activity] = e.activities.len
 	}
 }
 
@@ -136,7 +146,8 @@ pub fn (mut e EventLog) finish() {
 }
 
 pub fn (e EventLog) activity_id(name string) int {
-	return e.index[name] or { -1 }
+	position := e.index[name]
+	return if position == 0 { -1 } else { position - 1 }
 }
 
 pub fn timestamp_key(year int, month int, day int, hour int, minute int, second int) i64 {

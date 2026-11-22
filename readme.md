@@ -165,8 +165,24 @@ v vet ./flowkit ./cmd/flowkit
 v run benchmarks/bench.v -- dataset.csv
 ```
 
-Measured on the bundled 39 MB BPI log: 466,737 events in 5.31 s
-(≈87,800 events/s, ≈7.4 MB/s) on the development machine.
+Measured on the bundled 39 MB BPI log (466,737 events, 46,616 cases) on the
+development machine:
+
+| Stage | Time |
+|---|---:|
+| CSV read | 1,939 ms |
+| Footprint | 76 ms |
+| Discovery | 132 ms |
+| Statistics | 382 ms |
+| Quality | 79 ms |
+| Conformance | 76 ms |
+| DFG | 76 ms |
+| **Total** | **2,759 ms** |
+
+That is ≈169,000 events/s and ≈14.2 MB/s. The reader was rewritten as a
+single-pass byte scanner (down from 3,953 ms), and quality evaluation now
+builds a set of modelled pairs once instead of scanning every place for every
+activity pair (down from 325 ms). Raw file I/O is only ~10 ms.
 
 ## Dataset
 

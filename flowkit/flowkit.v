@@ -119,7 +119,7 @@ pub fn new_pipeline(log model.EventLog) pl.Pipeline {
 }
 
 pub fn read_csv(path string, opts model.ReadOptions) !model.EventLog {
-	return io.read_csv(path, opts)
+	return io.read_csv_fast(path, opts)
 }
 
 pub fn parse_csv(content string, opts model.ReadOptions) !model.EventLog {

@@ -12,7 +12,7 @@ import flowkit.process
 import flowkit.ocel
 
 fn builtin_read_csv(path string, opts contracts.Options) !model.EventLog {
-	return io.read_csv(path, model.ReadOptions{ delimiter: opts.delimiter, header: opts.header })
+	return io.read_csv_fast(path, model.ReadOptions{ delimiter: opts.delimiter, header: opts.header })
 }
 
 fn builtin_read_xes(path string, opts contracts.Options) !model.EventLog {

@@ -22,42 +22,28 @@ pub:
 pub fn evaluate(log model.EventLog, net model.PetriNet) Quality {
 	fp := footprint_from(log)
 	n := log.activity_count()
+	mut modelled_pairs := map[string]bool{}
+	for place in net.places {
+		for a in place.inputs {
+			for b in place.outputs {
+				modelled_pairs['${a}>${b}'] = true
+			}
+		}
+	}
 	mut observed := 0
-	mut modelled := 0
+	mut covered := 0
 	for a := 0; a < n; a++ {
 		for b := 0; b < n; b++ {
-			seen := fp.relation_id(a, b) == .causality
-			mut present := false
-			for place in net.places {
-				if place.inputs.contains(log.activities[a]) && place.outputs.contains(log.activities[b]) {
-					present = true
-					break
-				}
+			if fp.relation_id(a, b) != .causality {
+				continue
 			}
-			if seen {
-				observed++
-			}
-			if present {
-				modelled++
+			observed++
+			if modelled_pairs['${log.activities[a]}>${log.activities[b]}'] {
+				covered++
 			}
 		}
 	}
-	mut covered := 0
-	if observed > 0 {
-		for a := 0; a < n; a++ {
-			for b := 0; b < n; b++ {
-				if fp.relation_id(a, b) != .causality {
-					continue
-				}
-				for place in net.places {
-					if place.inputs.contains(log.activities[a]) && place.outputs.contains(log.activities[b]) {
-						covered++
-						break
-					}
-				}
-			}
-		}
-	}
+	modelled := modelled_pairs.len
 	fitness := if observed == 0 { 1.0 } else { f64(covered) / f64(observed) }
 	precision := if modelled == 0 { 1.0 } else { f64(covered) / f64(modelled) }
 	nodes := net.places.len + n
