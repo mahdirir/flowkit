@@ -24,11 +24,13 @@ dependencies.
 
 ## Install
 
+Once registered on VPM:
+
 ```bash
 v install metif12.flowkit
 ```
 
-Or build from source:
+Until then, build from source:
 
 ```bash
 git clone https://github.com/metif12/flowkit.git
