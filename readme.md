@@ -23,6 +23,7 @@ dependencies.
 - **Stream** very large logs with incremental DFG statistics
 - **Encode** cases as one-hot, count, n-gram or TF-IDF feature tables
 - **Export** text, JSON, Graphviz DOT, PNML, BPMN and XES
+- **Extend** with custom readers, parsers, writers, algorithms and hooks — built-ins use the same registry
 - **Compose** all of the above through a pipeline API or the CLI
 
 ## Install
@@ -106,6 +107,9 @@ flowkit completions <bash|zsh|powershell>
       --stream           Stream events and report DFG statistics only
       --encode NAME      Feature encoding: onehot, count, ngram, tfidf
       --ngram N          N-gram size (default: 2)
+      --algorithm NAME   Discovery algorithm (alpha, alpha+, heuristic, or custom)
+      --hook PHASE=CMD   Register an external hook (repeatable)
+      --list-formats     List registered readers, writers and algorithms
       --object-type NAME Object type to project from an OCEL log
       --ocel-types       List object types and their co-occurrence graph
       --min-count N      Minimum DFG edge frequency (default: 1)
@@ -137,7 +141,12 @@ flowkit/
   streaming/    incremental event and DFG counters
   ml/           one-hot, count, n-gram and TF-IDF encodings
   ocel/         object-centric logs, flattening and OC-DFG
-  pipeline/     stage composition
+  contracts/    extension specs and shared pipeline context
+  registry/     extension registration and lookup
+  builtins/     registers CSV/XES/OCEL, exporters and α/α+/heuristic
+  hooks/        in-process and external command hooks
+  session/      extension-aware stage pipeline
+  pipeline/     legacy fixed-stage composition
 cmd/flowkit/    CLI
 benchmarks/     reproducible throughput harness
 docs/           GitHub Pages site
@@ -164,6 +173,13 @@ Measured on the bundled 39 MB BPI log: 466,737 events in 5.31 s
 `dataset.csv` is the BPI Challenge 2014 incident activity log
 ([source](https://data.4tu.nl/articles/dataset/BPI_Challenge_2014_Activity_log_for_incidents/12706424/1)).
 `result.txt` is an example full result dump from an earlier version.
+
+## Extending
+
+Every format and algorithm is a registered extension, so third-party code uses
+the same API as the built-ins. External hooks can be written in any language.
+See the [extension guide](docs/extending.md) and
+[`examples/plugins`](examples/plugins).
 
 ## License
 

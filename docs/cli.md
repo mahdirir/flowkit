@@ -30,6 +30,9 @@ Progress goes to stderr; results go to stdout or `--output`.
 | `--stream` | Stream events and print DFG statistics |
 | `--encode NAME` | Feature encoding: `onehot`, `count`, `ngram`, `tfidf` |
 | `--ngram N` | N-gram size (default 2) |
+| `--algorithm NAME` | Use a registered discovery algorithm |
+| `--hook PHASE=CMD` | Register an external command hook (repeatable) |
+| `--list-formats` | List registered readers, writers and algorithms |
 | `--object-type NAME` | Project an OCEL log onto one object type |
 | `--ocel-types` | List object types and their co-occurrence graph |
 | `-d, --delimiter CHAR` | CSV delimiter or `tab` (default `;`) |

@@ -16,6 +16,7 @@ lifecycle: ingest → inspect → filter → discover → evaluate → export.
 - Footprint conformance and fitness/precision/simplicity proxies
 - Text, JSON, Graphviz DOT, PNML and XES output
 - Three API levels: one-call, pipeline and raw building blocks
+- Extensible via registered readers, writers, algorithms and pre/post hooks
 
 ## Install
 
@@ -52,4 +53,5 @@ println(flowkit.render_json(result))
 - [CLI reference](cli.md)
 - [Library API](api.md)
 - [Algorithm and internals](algorithm.md)
+- [Extending flowkit](extending.md)
 - [Source](https://github.com/metif12/flowkit)

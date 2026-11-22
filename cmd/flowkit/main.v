@@ -11,6 +11,7 @@ enum Action {
 	help
 	version
 	completions
+	list_formats
 	usage_error
 }
 
@@ -35,6 +36,9 @@ mut:
 	dry_run      bool
 	conformance  bool
 	encode       string
+	algorithm    string
+	hooks        []string
+	list_formats bool
 	object_type  string
 	ocel_types   bool
 	ngram        int = 2
@@ -187,6 +191,12 @@ fn parse(args []string) Outcome {
 			i++
 			continue
 		}
+		if arg == '--list-formats' {
+			o.list_formats = true
+			action = .list_formats
+			i++
+			continue
+		}
 		if arg == '--ocel-types' {
 			o.ocel_types = true
 			i++
@@ -242,7 +252,7 @@ fn parse(args []string) Outcome {
 			'-f', '--format' {
 				v, next, ok := value_for(args, i, inline)
 				if !ok { return usage(o, '${key} requires a value') }
-				o.format = parse_format(v) or { return usage(o, 'invalid format "${v}" (text, json, dot, pnml, xes)') }
+				o.format = parse_format(v) or { return usage(o, 'invalid format "${v}" (text, json, dot, pnml, bpmn, xes)') }
 				i = next
 			}
 			'-d', '--delimiter' {
@@ -279,6 +289,18 @@ fn parse(args []string) Outcome {
 				v, next, ok := value_for(args, i, inline)
 				if !ok { return usage(o, '${key} requires a value') }
 				o.method = parse_method(v) or { return usage(o, 'invalid method "${v}" (alpha, alpha+)') }
+				i = next
+			}
+			'--algorithm' {
+				v, next, ok := value_for(args, i, inline)
+				if !ok { return usage(o, '${key} requires a value') }
+				o.algorithm = v
+				i = next
+			}
+			'--hook' {
+				v, next, ok := value_for(args, i, inline)
+				if !ok { return usage(o, '${key} requires a value') }
+				o.hooks << v
 				i = next
 			}
 			'--object-type' {
@@ -364,6 +386,9 @@ fn help() {
 	println('      --explain          Explain each step in the output')
 	println('      --conformance      Print replay, alignment, precision and generalization')
 	println('      --stream           Stream events and report DFG statistics only')
+	println('      --algorithm NAME   Discovery algorithm (alpha, alpha+, heuristic, or custom)')
+	println('      --hook PHASE=CMD   Register an external hook (repeatable)')
+	println('      --list-formats     List registered readers, writers and algorithms')
 	println('      --object-type NAME Object type to project from an OCEL log')
 	println('      --ocel-types       List object types and their co-occurrence graph')
 	println('      --encode NAME      Feature encoding: onehot, count, ngram, tfidf')
@@ -458,28 +483,50 @@ fn execute(action Action, o Options) int {
 		return 0
 	}
 
-	opts := flowkit.Options{
+	mut opts := flowkit.Options{
 		method:    o.method
 		min_count: o.min_count
 		filters:   filters
 		delimiter: o.delimiter
 		header:    o.header
 	}
-	result := if o.input.ends_with('.json') || o.input.ends_with('.jsonocel') {
-		flowkit.discover_ocel(o.input, o.object_type, opts) or {
-			eprintln('flowkit: error: ${err.msg()}')
-			return 1
+	if o.format == 'xes' && o.output == '' {
+		return fail('format xes requires --output')
+	}
+	opts.metadata['format'] = o.format
+	if o.object_type != '' {
+		opts.metadata['object_type'] = o.object_type
+	}
+	if o.heuristic || o.algorithm == 'heuristic' {
+		opts.algorithm = 'heuristic'
+		opts.metadata['threshold'] = o.threshold.str()
+	} else if o.algorithm != '' {
+		opts.algorithm = o.algorithm
+	}
+
+	mut ctx := flowkit.new_context(o.input, opts)
+	ctx.output = o.output
+	mut reg := flowkit.new_registry() or {
+		eprintln('flowkit: error: ${err.msg()}')
+		return 1
+	}
+	for spec in o.hooks {
+		parts := spec.split('=')
+		if parts.len < 2 {
+			return fail('hook must be PHASE=COMMAND: ${spec}')
 		}
-	} else if o.heuristic {
-		flowkit.discover_heuristic_log(o.input, o.threshold, opts) or {
-			eprintln('flowkit: error: ${err.msg()}')
-			return 1
+		phase := flowkit.parse_phase(parts[0]) or {
+			return fail('unknown hook phase "${parts[0]}"')
 		}
-	} else {
-		flowkit.discover(o.input, opts) or {
-			eprintln('flowkit: error: ${err.msg()}')
-			return 1
+		command_line := parts[1..].join('=')
+		reg.add_hook(flowkit.command_hook('cli-${parts[0]}', phase, command_line)) or {
+			return fail(err.msg())
 		}
+	}
+
+	result := flowkit.run(mut reg, mut ctx) or {
+		eprintln('flowkit: error: ${err.msg()}')
+		return 1
 	}
 
 	if !o.quiet {
@@ -493,35 +540,18 @@ fn execute(action Action, o Options) int {
 		return 0
 	}
 
-	mut output := ''
-	if action == .convert && o.format == 'text' && o.output.ends_with('.xes') {
-		flowkit.write_xes(o.output, result.log) or {
-			eprintln('flowkit: error: ${err.msg()}')
-			return 1
+	mut output := ctx.rendered
+	if o.output != '' {
+		if !o.quiet {
+			eprintln('flowkit: wrote ${o.output}')
 		}
 		return 0
 	}
-	output = match o.format {
-		'json' { flowkit.render_json(result) }
-		'dot' { flowkit.render_dot(result) }
-		'pnml' { flowkit.render_pnml(result) }
-		'bpmn' { flowkit.render_bpmn(flowkit.process_tree(result.log)) }
-		'xes' {
-			if o.output == '' {
-				return fail('format xes requires --output')
-			}
-			flowkit.write_xes(o.output, result.log) or {
-				eprintln('flowkit: error: ${err.msg()}')
-				return 1
-			}
-			return 0
-		}
-		else {
-			flowkit.render_text(result, flowkit.TextOptions{
-				summary_only: o.summary_only || action == .stats
-				explain:      o.explain
-			})
-		}
+	if o.format == 'text' || o.format == 'txt' || o.format == '' {
+		output = flowkit.render_text(result, flowkit.TextOptions{
+			summary_only: o.summary_only || action == .stats
+			explain:      o.explain
+		})
 	}
 	if o.encode != '' {
 		features := flowkit.encode(result.log, o.encode, o.ngram)
@@ -570,6 +600,14 @@ fn main() {
 			0
 		}
 		.completions { completions(outcome.shell) }
+		.list_formats {
+			reg := flowkit.new_registry() or {
+				eprintln('flowkit: error: ${err.msg()}')
+				exit(1)
+			}
+			print(flowkit.describe_registry(reg))
+			0
+		}
 		.usage_error { fail(outcome.msg) }
 		else { execute(outcome.action, outcome.opts) }
 	}

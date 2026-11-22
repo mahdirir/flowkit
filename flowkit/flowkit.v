@@ -5,9 +5,12 @@
 //	result := flowkit.discover('log.xes')!
 //	println(flowkit.render_text(result, flowkit.TextOptions{}))
 //
-// For more control, use a pipeline:
+// Extension-aware usage:
 //
-//	result := flowkit.new_pipeline(log).with_method(.alpha_plus).run()
+//	mut reg := flowkit.new_registry()!
+//	reg.add_algorithm(my_algorithm)!
+//	ctx := flowkit.new_context('log.csv', flowkit.Options{})
+//	result := flowkit.run(mut reg, mut ctx)!
 module flowkit
 
 import flowkit.model
@@ -22,8 +25,13 @@ import flowkit.process
 import flowkit.streaming
 import flowkit.ml
 import flowkit.ocel
+import flowkit.contracts
+import flowkit.registry
+import flowkit.builtins
+import flowkit.session
+import flowkit.hooks
 
-pub const version = '1.1.0'
+pub const version = contracts.version
 
 pub type Event = model.Event
 pub type Trace = model.Trace
@@ -37,7 +45,17 @@ pub type Stats = model.Stats
 pub type Relation = model.Relation
 pub type Method = discovery.Method
 pub type Filter = analysis.Filter
-pub type Result = pl.Result
+pub type Options = contracts.Options
+pub type Result = contracts.Result
+pub type Context = contracts.Context
+pub type Registry = registry.Registry
+pub type Phase = contracts.Phase
+pub type HookSpec = contracts.HookSpec
+pub type ReaderSpec = contracts.ReaderSpec
+pub type ParserSpec = contracts.ParserSpec
+pub type WriterSpec = contracts.WriterSpec
+pub type RendererSpec = contracts.RendererSpec
+pub type AlgorithmSpec = contracts.AlgorithmSpec
 pub type TextOptions = export.TextOptions
 pub type ReadOptions = model.ReadOptions
 pub type Quality = evaluation.Quality
@@ -45,55 +63,55 @@ pub type ConformanceReport = conformance.Report
 pub type ReplayResult = conformance.ReplayResult
 pub type Alignment = conformance.Alignment
 
-pub struct Options {
-pub:
-	method    discovery.Method = .alpha
-	min_count u32              = 1
-	filters   []analysis.Filter
-	delimiter u8   = `;`
-	header    bool = true
+pub fn new_registry() !registry.Registry {
+	return builtins.default_registry()
 }
 
-// discover reads a CSV or XES log and runs the full pipeline in one call.
-pub fn discover(path string, opts Options) !pl.Result {
-	log := if path.ends_with('.xes') {
-		io.read_xes(path)!
-	} else {
-		io.read_csv(path, model.ReadOptions{
-			delimiter: opts.delimiter
-			header:    opts.header
-		})!
-	}
-	mut pipe := pl.new(log).with_method(opts.method).with_min_count(opts.min_count)
-	for filter in opts.filters {
-		pipe = pipe.with_filter(filter)
-	}
-	return pipe.run()
+pub fn new_context(path string, opts Options) Context {
+	return contracts.Context{ path: path, options: opts }
 }
 
-// discover_heuristic_log reads a log and discovers a model with the
-// frequency-based heuristic miner.
-pub fn discover_heuristic_log(path string, threshold f64, opts Options) !pl.Result {
-	log := if path.ends_with('.xes') {
-		io.read_xes(path)!
-	} else {
-		io.read_csv(path, model.ReadOptions{ delimiter: opts.delimiter, header: opts.header })!
-	}
-	fp := analysis.build_footprint(log)
-	mut filtered := log
-	for filter in opts.filters {
-		filtered = analysis.filter(filtered, filter)
-	}
-	net := discovery.discover_heuristic(filtered, fp, threshold)
-	return pl.Result{
-		log:       filtered
-		footprint: fp
-		net:       net
-		stats:     analysis.compute_stats(filtered)
-		quality:   evaluation.evaluate(filtered, net)
-		report:    conformance.check_footprints(filtered, net)
-		dfg:       analysis.build_dfg(filtered, opts.min_count)
-	}
+pub fn run(mut reg registry.Registry, mut ctx Context) !Result {
+	return session.run(mut reg, mut ctx)
+}
+
+pub fn run_default(mut ctx Context) !Result {
+	return session.run_default(mut ctx)
+}
+
+pub fn describe_registry(reg registry.Registry) string {
+	return registry.describe(reg)
+}
+
+pub fn parse_phase(s string) ?Phase {
+	return contracts.parse_phase(s)
+}
+
+pub fn normalize_hook() HookSpec {
+	return hooks.normalize_activities()
+}
+
+pub fn annotate_hook() HookSpec {
+	return hooks.annotate()
+}
+
+pub fn command_hook(name string, phase Phase, command string) HookSpec {
+	return hooks.command(name, phase, command)
+}
+
+// discover reads a log and runs the full extension-aware pipeline.
+pub fn discover(path string, opts Options) !Result {
+	mut ctx := new_context(path, opts)
+	return run_default(mut ctx)
+}
+
+pub fn discover_heuristic_log(path string, threshold f64, opts Options) !Result {
+	mut options := opts
+	options.metadata = opts.metadata.clone()
+	options.algorithm = 'heuristic'
+	options.metadata['threshold'] = threshold.str()
+	mut ctx := new_context(path, options)
+	return run_default(mut ctx)
 }
 
 pub fn new_pipeline(log model.EventLog) pl.Pipeline {
@@ -168,19 +186,19 @@ pub fn generalization(log model.EventLog, net model.PetriNet) f64 {
 	return evaluation.generalization(log, net)
 }
 
-pub fn render_text(result pl.Result, opts export.TextOptions) string {
+pub fn render_text(result Result, opts export.TextOptions) string {
 	return export.render_text(result.log, result.stats, result.net, result.quality, opts)
 }
 
-pub fn render_json(result pl.Result) string {
+pub fn render_json(result Result) string {
 	return export.render_json(result.log, result.stats, result.net, result.quality)
 }
 
-pub fn render_dot(result pl.Result) string {
+pub fn render_dot(result Result) string {
 	return export.render_dot(result.log, result.net)
 }
 
-pub fn render_pnml(result pl.Result) string {
+pub fn render_pnml(result Result) string {
 	return export.render_pnml(result.net)
 }
 
@@ -241,14 +259,10 @@ pub fn ocel_dfg(log ocel.OcelLog, object_type string, min_count u32) model.Dfg {
 	return ocel.ocdfg(log, object_type, min_count)
 }
 
-// discover_ocel reads an object-centric log and discovers a model after
-// projecting it onto one object type.
-pub fn discover_ocel(path string, object_type string, opts Options) !pl.Result {
-	olog := ocel.read_ocel_json(path)!
-	log := ocel.flatten(olog, object_type)!
-	mut pipe := pl.new(log).with_method(opts.method).with_min_count(opts.min_count)
-	for filter in opts.filters {
-		pipe = pipe.with_filter(filter)
-	}
-	return pipe.run()
+pub fn discover_ocel(path string, object_type string, opts Options) !Result {
+	mut options := opts
+	options.metadata = opts.metadata.clone()
+	options.metadata['object_type'] = object_type
+	mut ctx := new_context(path, options)
+	return run_default(mut ctx)
 }
