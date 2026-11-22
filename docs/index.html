@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="flowkit: process mining and activity log processing in V. CSV, XES and OCEL ingest, alpha and heuristic discovery, conformance, DOT/PNML/BPMN/JSON export.">
+	<title>flowkit, process mining in V</title>
+	<link rel="stylesheet" href="assets/tokens.css">
+	<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+	<a class="skip-link" href="#main">Skip to content</a>
+
+	<header class="site-header">
+		<div class="wrap header-inner">
+			<a class="brand" href="index.html" aria-label="flowkit home">
+				<span class="brand-mark" aria-hidden="true">
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<path d="M4 6h16M4 12h10M4 18h6"/>
+					</svg>
+				</span>
+				flowkit
+			</a>
+			<nav class="site-nav" aria-label="Main navigation">
+				<a href="#speed">Speed</a>
+				<a href="#features">Features</a>
+				<a href="#tour">Usage</a>
+				<a href="cli.html">Docs</a>
+				<a href="https://github.com/metif12/flowkit">GitHub</a>
+			</nav>
+			<button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false" aria-label="Use dark theme">
+				<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+					<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>
+				</svg>
+			</button>
+		</div>
+	</header>
+
+	<main id="main">
+		<section class="hero wrap" aria-labelledby="hero-title">
+			<span class="eyebrow">V 0.5.2 / MIT / zero runtime dependencies</span>
+			<h1 id="hero-title">See the process inside your logs.</h1>
+			<p class="lede">Read CSV, XES or OCEL event logs. Discover Petri nets with alpha, alpha+ or the heuristic miner. Check conformance. Export DOT, PNML, BPMN or JSON. One library, one binary.</p>
+			<div class="cta-row">
+				<a class="button button-primary" href="cli.html">
+					Quick start
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+				</a>
+				<a class="button button-secondary" href="api.html">Library API</a>
+			</div>
+			<div class="install-line">
+				<code class="install-command" id="install-command">v install metif12.flowkit</code>
+				<button class="button button-secondary" id="copy-install" type="button" aria-label="Copy install command">Copy</button>
+				<span id="copy-status" role="status" class="mono"></span>
+			</div>
+		</section>
+
+		<section class="speed" id="speed" aria-labelledby="speed-title">
+			<div class="wrap">
+				<div class="section-head">
+					<h2 id="speed-title">Measured, not promised</h2>
+					<span class="section-note">BPI Challenge 2014, 39 MB, on the development machine</span>
+				</div>
+				<div class="speed-grid">
+					<div class="stat-lead">
+						<div class="stat-value mono">154k</div>
+						<div class="stat-label">events per second through the full discovery pipeline</div>
+					</div>
+					<div class="stat-small">
+						<div class="stat-value mono">3.0 s</div>
+						<div class="stat-label">end to end, 466,737 events</div>
+					</div>
+					<div class="stat-small">
+						<div class="stat-value mono">11 ms</div>
+						<div class="stat-label">raw file I/O; parsing dominates</div>
+					</div>
+				</div>
+			</div>
+		</section>
+
+		<section class="capabilities wrap" id="features" aria-labelledby="features-title">
+			<div class="section-head">
+				<h2 id="features-title">Built for the whole lifecycle</h2>
+				<span class="section-note">Read, shape, discover, verify, export</span>
+			</div>
+			<div class="feature-grid">
+				<article class="feature feature-lead">
+					<span class="feature-icon" aria-hidden="true">
+						<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="M8 7l3 9M16 7l-3 9M8 6h8"/></svg>
+					</span>
+					<h3>Discover</h3>
+					<p>Classic alpha, alpha+ for short loops, and a frequency-based heuristic miner. Maximal places grow from causal seeds instead of enumerating 2^n activity subsets.</p>
+				</article>
+				<article class="feature">
+					<span class="feature-icon" aria-hidden="true">
+						<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v7c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12v7c0 1.7 3.6 3 8 3s8-1.3 8-3v-7"/></svg>
+					</span>
+					<h3>Ingest</h3>
+					<p>Single-pass CSV with configurable columns, XES 1.0 traces, and OCEL 2.0 object-centric logs. Strict digit checks reject malformed timestamps.</p>
+				</article>
+				<article class="feature">
+					<span class="feature-icon" aria-hidden="true">
+						<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.6-3 8.4-7 10-4-1.6-7-5.4-7-10V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg>
+					</span>
+					<h3>Verify</h3>
+					<p>Footprint comparison, token replay, bounded alignments, precision and generalization. Quality proxies are named as proxies, not sold as exact measures.</p>
+				</article>
+				<article class="feature">
+					<span class="feature-icon" aria-hidden="true">
+						<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3H6a2 2 0 0 0-2 2v4h4M14 3h4a2 2 0 0 1 2 2v4h-4M10 21H6a2 2 0 0 1-2-2v-4h4M14 21h4a2 2 0 0 0 2-2v-4h-4"/></svg>
+					</span>
+					<h3>Extend</h3>
+					<p>Every reader, writer, algorithm and hook is a registered spec. Built-ins use the same registry as your code, and command hooks run in any language.</p>
+				</article>
+			</div>
+		</section>
+
+		<section class="tour" id="tour" aria-labelledby="tour-title">
+			<div class="wrap">
+				<div class="section-head">
+					<h2 id="tour-title">Two minutes to a model</h2>
+					<span class="section-note">CLI or library, same pipeline</span>
+				</div>
+				<div class="tour-grid">
+					<div>
+						<div class="code-title">Terminal</div>
+						<pre class="code-block"><code>flowkit -i dataset.csv --summary-only
+flowkit -i log.xes -f dot -o net.dot
+flowkit -i log.csv --conformance
+flowkit -i example.jsonocel --object-type Order
+flowkit --list-formats</code></pre>
+					</div>
+					<div>
+						<div class="code-title">V library</div>
+						<pre class="code-block"><code>import flowkit
+
+result := flowkit.discover('log.xes')!
+println(flowkit.render_json(result))
+println(flowkit.replay(result.log, result.net).fitness)</code></pre>
+					</div>
+				</div>
+			</div>
+		</section>
+
+		<section class="architecture wrap" aria-labelledby="arch-title">
+			<div class="section-head">
+				<h2 id="arch-title">Composable by construction</h2>
+				<span class="section-note">Import only what you need</span>
+			</div>
+			<ul class="package-list">
+				<li><code>model</code> <span>types, flat footprint, length-prefixed keys</span></li>
+				<li><code>io</code> <span>CSV, XES, OCEL</span></li>
+				<li><code>analysis</code> <span>footprint, statistics, DFG, filters</span></li>
+				<li><code>discovery</code> <span>alpha, alpha+, heuristic</span></li>
+				<li><code>conformance</code> <span>replay, alignments, footprints</span></li>
+				<li><code>evaluation</code> <span>quality and conformance metrics</span></li>
+				<li><code>export</code> <span>text, JSON, DOT, PNML, BPMN</span></li>
+				<li><code>process</code> <span>trees, Petri nets, BPMN</span></li>
+				<li><code>streaming</code> <span>incremental counters and DFG</span></li>
+				<li><code>ml</code> <span>one-hot, counts, n-grams, TF-IDF</span></li>
+				<li><code>ocel</code> <span>object-centric logs</span></li>
+				<li><code>contracts / registry / builtins / hooks / session</code> <span>extension system</span></li>
+			</ul>
+		</section>
+
+		<section class="docs wrap" aria-labelledby="docs-title">
+			<div class="section-head">
+				<h2 id="docs-title">Read the docs</h2>
+				<span class="section-note">Guides and reference</span>
+			</div>
+			<div class="doc-links">
+				<a class="doc-link" href="cli.html">CLI reference <small>flags, formats, examples</small></a>
+				<a class="doc-link" href="api.html">Library API <small>packages, types, helpers</small></a>
+				<a class="doc-link" href="algorithm.html">Algorithms <small>footprint, places, metrics</small></a>
+				<a class="doc-link" href="extending.html">Extending flowkit <small>specs, hooks, registry</small></a>
+			</div>
+		</section>
+	</main>
+
+	<footer class="site-footer">
+		<div class="wrap footer-inner">
+			<span>flowkit. MIT licensed.</span>
+			<a href="https://github.com/metif12/flowkit">Source on GitHub</a>
+		</div>
+	</footer>
+
+	<script>
+	(function () {
+		var root = document.documentElement;
+		var toggle = document.getElementById('theme-toggle');
+		var saved = null;
+		try { saved = localStorage.getItem('flowkit-theme'); } catch (e) {}
+		if (saved === 'dark') {
+			root.setAttribute('data-theme', 'dark');
+			toggle.setAttribute('aria-pressed', 'true');
+			toggle.setAttribute('aria-label', 'Use light theme');
+		}
+		toggle.addEventListener('click', function () {
+			var dark = root.getAttribute('data-theme') === 'dark';
+			if (dark) {
+				root.removeAttribute('data-theme');
+				toggle.setAttribute('aria-pressed', 'false');
+				toggle.setAttribute('aria-label', 'Use dark theme');
+				try { localStorage.setItem('flowkit-theme', 'light'); } catch (e) {}
+			} else {
+				root.setAttribute('data-theme', 'dark');
+				toggle.setAttribute('aria-pressed', 'true');
+				toggle.setAttribute('aria-label', 'Use light theme');
+				try { localStorage.setItem('flowkit-theme', 'dark'); } catch (e) {}
+			}
+		});
+		var copy = document.getElementById('copy-install');
+		var status = document.getElementById('copy-status');
+		copy.addEventListener('click', function () {
+			var text = document.getElementById('install-command').textContent;
+			if (navigator.clipboard && navigator.clipboard.writeText) {
+				navigator.clipboard.writeText(text).then(function () {
+					status.textContent = 'Copied';
+				}, function () {
+					status.textContent = 'Copy failed';
+				});
+			} else {
+				status.textContent = 'Clipboard unavailable';
+			}
+		});
+	})();
+	</script>
+</body>
+</html>
