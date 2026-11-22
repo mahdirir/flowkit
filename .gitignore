@@ -1,9 +1,13 @@
-# Binaries for programs and plugins
-main
-alpha
+# Binaries for programs and plugins (rooted so source dirs are not ignored)
+/main
+/alpha-miner
+/alpha-miner.exe
 *.exe
 *.exe~
 *.exe.manifest
+
+# Jekyll build output
+docs/_site/
 *.so
 *.dylib
 *.dll

@@ -1,0 +1,11 @@
+title: alpha-miner
+description: Process discovery from activity logs in V
+theme: jekyll-theme-primer
+markdown: kramdown
+
+plugins:
+  - jekyll-relative-links
+
+relative_links:
+  enabled: true
+  collections: true

@@ -1,30 +1,46 @@
-# alpha
+# alpha-miner
 
-A command-line tool that discovers a **Petri net** from an **event log** using the
-process-mining **α-algorithm**. Written in [V](https://vlang.io/), no runtime
-dependencies.
+[![V](https://img.shields.io/badge/V-0.5.2-5d87bf.svg)](https://vlang.io/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## Install / build
+**Process discovery from activity logs, in V.**
+
+`alpha-miner` discovers a Petri net from a delimited event log using the
+process-mining α-algorithm. It is both an importable V library (`alpha`) and a
+single-binary CLI (`alpha-miner`), with no runtime dependencies.
+
+📖 **Documentation:** <https://metif12.github.io/alpha-miner/>
+
+## Install
+
+Requires [V](https://vlang.io/) 0.5.2 or newer.
 
 ```bash
-v build -o alpha .      # produces ./alpha (or alpha.exe on Windows)
+git clone https://github.com/metif12/alpha-miner.git
+cd alpha-miner
+v build -o alpha-miner ./cmd/alpha-miner
 ```
 
-Or run directly from the source tree:
+## Quick start
 
 ```bash
-v run . -- --help
+# Discover a net from the bundled BPI Challenge 2014 log
+./alpha-miner -i dataset.csv --summary-only
+
+# Render it as a Graphviz graph
+./alpha-miner -i dataset.csv -f dot -o net.dot
+dot -Tpng net.dot -o net.png
+
+# A small example log
+./alpha-miner -i examples/simple.csv -d ,
 ```
 
-## Usage
+## CLI options
 
 ```
-alpha [OPTIONS] [INPUT]
-
-Options:
-  -i, --input FILE       Event log CSV (default: dataset.csv)
+  -i, --input FILE       Activity log CSV (default: dataset.csv)
   -o, --output FILE      Write result to FILE (default: stdout)
-  -f, --format FORMAT    Output format: text, json, dot (default: text)
+  -f, --format FORMAT    text, json or dot (default: text)
   -d, --delimiter CHAR   CSV delimiter, or "tab" (default: ;)
       --case-col N       Case-id column, 0-based (default: 0)
       --time-col N       Timestamp column, 0-based (default: 1)
@@ -38,112 +54,56 @@ Options:
   -V, --version          Show version
 ```
 
-Exit codes: `0` success, `1` runtime error, `2` usage error. Progress messages go
-to stderr, so the result on stdout can be piped safely.
+Exit codes: `0` success, `1` runtime error, `2` usage error. See the
+[CLI reference](docs/cli.md) for the input format and all output formats.
 
-### Examples
+## Use as a V library
 
-```bash
-# Default: read dataset.csv, print a text summary
-alpha
+```v
+import alpha
 
-# Discover a net and render it with Graphviz
-alpha -i dataset.csv -f dot -o net.dot
-dot -Tpng net.dot -o net.png
-
-# Machine-readable output, silence progress messages
-alpha -i log.csv --quiet --format json --output net.json
-
-# A different CSV layout: comma separated, activity in column 2
-alpha -i log.csv --delimiter , --activity-col 2
-
-# Just the numbers for the bundled BPI dataset
-alpha --summary-only
+result := alpha.analyze('log.csv', alpha.CsvOptions{ delimiter: `,` })!
+println(alpha.render_json(result))
 ```
 
-Both `--input=value` and `--input value` forms are accepted. A single positional
-argument is treated as the input file. Use `--` before a filename that starts
-with a dash.
+The library exposes the full pipeline — `read_eventlog_csv`, `build_footprint`,
+`discover_net` — plus the `render_text`, `render_json` and `render_dot`
+exporters. See the [API reference](docs/api.md).
 
-## Input format
+## Repository layout
 
-A delimited CSV with one row per event. The first row is skipped as a header
-unless `--no-header` is given. Default column layout (BPI Challenge 2014):
-
-| Column | Meaning |
-|---|---|
-| 0 | case / trace id |
-| 1 | timestamp |
-| 2 | event id |
-| 3 | activity name |
-
-Timestamps are parsed as `YYYY-MM-DD HH:mm:ss` or `DD-MM-YYYY HH:mm:ss`.
-Events are sorted by timestamp within each case; repeated event ids are ignored.
-Activities that repeat within a case are **not** collapsed, so loops are kept.
-
-## Output formats
-
-### `text` (default)
-
-Summary counts, start/end activities, the footprint relation table (for logs with
-up to 12 activities), and every place and arc of the discovered net.
-`--summary-only` prints just the counts and start/end activities.
-
-### `json`
-
-```json
-{
-  "version": "1.0.0",
-  "summary": { "traces": 2, "activities": 3, "places": 4, "arcs": 7 },
-  "activities": ["A", "B", "C"],
-  "start_activities": ["A"],
-  "end_activities": ["B", "C"],
-  "places": [
-    { "index": 0, "inputs": ["A"], "outputs": ["B"] }
-  ],
-  "arcs": [
-    { "transition": "A", "place": 0, "direction": "in" }
-  ]
-}
 ```
-
-### `dot`
-
-A Graphviz directed graph: transitions are boxes, places are circles.
+alpha/               V library (module alpha)
+cmd/alpha-miner/     CLI entry point
+docs/                GitHub Pages documentation
+examples/            small example logs
+dataset.csv          BPI Challenge 2014 activity log
+result.txt           example result dump from an earlier version
+```
 
 ## How it works
 
-1. **Event log** — rows are grouped by case id and sorted by timestamp.
-2. **Footprint** — for every pair of activities `(a, b)` compute
-   `a -> b` (causality), `a || b` (concurrency) or `a # b` (never follows).
-3. **Places** — grow every causal seed `(a, b)` into all maximal input/output
-   sets whose members are pairwise non-following and whose cross product is
-   causal. This is equivalent to the α-algorithm's powerset search without
-   materialising 2ⁿ subsets, which is infeasible for real logs. Every emitted
-   place is checked against the footprint before being added.
-4. **Source/sink places** — `iL = (∅, start activities)` and
-   `oL = (end activities, ∅)`.
+1. Group rows by case and sort events by timestamp.
+2. Build a footprint of causality (`->`), concurrency (`||`) and never-follow
+   (`#`) relations between activities.
+3. Grow every causal pair into all maximal places, validating each against the
+   footprint — no 2ⁿ powerset enumeration.
+4. Add the source and sink places, then render.
 
-The bundled `dataset.csv` is the BPI Challenge 2014 incident activity log
-([source](https://data.4tu.nl/articles/dataset/BPI_Challenge_2014_Activity_log_for_incidents/12706424/1)).
-`result.txt` is an example full result dump from an earlier version.
+The α-algorithm assumes complete, noise-free logs; see
+[Algorithm](docs/algorithm.md) for details and limitations.
 
 ## Tests
 
 ```bash
-v test .
+v test ./alpha ./cmd/alpha-miner
 ```
 
-Tests cover footprint relations, place validity, net construction, timestamp
-parsing, argument parsing and all three renderers.
+## Dataset
 
-## Known limitations
-
-The α-algorithm assumes a complete, noise-free event log. Real event logs with
-missing or out-of-order events can produce an over-fitted net. The number of
-places is bounded only by the structure of the footprint — for very large or
-very concurrent logs the maximal-pair search can grow.
+`dataset.csv` is the BPI Challenge 2014 incident activity log
+([source](https://data.4tu.nl/articles/dataset/BPI_Challenge_2014_Activity_log_for_incidents/12706424/1)).
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).
