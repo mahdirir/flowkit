@@ -26,7 +26,9 @@ mut:
 	activity_col int            = 3
 	header       bool           = true
 	method       flowkit.Method = .alpha
-	min_count    u32            = 1
+	heuristic    bool
+	threshold    f64 = 0.5
+	min_count    u32 = 1
 	max_variants int
 	summary_only bool
 	explain      bool
@@ -67,6 +69,24 @@ fn nonnegative(s string) ?int {
 		}
 	}
 	return s.int()
+}
+
+fn number(s string) bool {
+	if s.len == 0 {
+		return false
+	}
+	mut dots := 0
+	for c in s {
+		if c == `.` {
+			dots++
+			if dots > 1 {
+				return false
+			}
+		} else if c != `-` && (c < 48 || c > 57) {
+			return false
+		}
+	}
+	return true
 }
 
 fn parse_delimiter(s string) ?u8 {
@@ -161,6 +181,11 @@ fn parse(args []string) Outcome {
 			i++
 			continue
 		}
+		if arg == '--heuristic' {
+			o.heuristic = true
+			i++
+			continue
+		}
 		if arg == '--conformance' {
 			o.conformance = true
 			i++
@@ -240,6 +265,15 @@ fn parse(args []string) Outcome {
 				o.method = parse_method(v) or { return usage(o, 'invalid method "${v}" (alpha, alpha+)') }
 				i = next
 			}
+			'--threshold' {
+				v, next, ok := value_for(args, i, inline)
+				if !ok { return usage(o, '${key} requires a value') }
+				if !number(v) {
+					return usage(o, '${key} expects a number')
+				}
+				o.threshold = v.f64()
+				i = next
+			}
 			'--min-count' {
 				v, next, ok := value_for(args, i, inline)
 				if !ok { return usage(o, '${key} requires a value') }
@@ -288,6 +322,8 @@ fn help() {
 	println('      --activity-col N   Activity column, 0-based (default: 3)')
 	println('      --no-header        First row is data, not a header')
 	println('      --method NAME      alpha or alpha+ (default: alpha)')
+	println('      --heuristic        Use the frequency-based heuristic miner')
+	println('      --threshold N      Heuristic dependency threshold (default: 0.5)')
 	println('      --min-count N      Minimum DFG edge frequency (default: 1)')
 	println('      --max-variants N   Keep the N most frequent variants')
 	println('      --summary-only     Counts and quality only')
@@ -336,15 +372,23 @@ fn execute(action Action, o Options) int {
 	if o.max_variants > 0 {
 		filters << flowkit.Filter{ max_variants: o.max_variants }
 	}
-	result := flowkit.discover(o.input, flowkit.Options{
+	opts := flowkit.Options{
 		method:    o.method
 		min_count: o.min_count
 		filters:   filters
 		delimiter: o.delimiter
 		header:    o.header
-	}) or {
-		eprintln('flowkit: error: ${err.msg()}')
-		return 1
+	}
+	result := if o.heuristic {
+		flowkit.discover_heuristic_log(o.input, o.threshold, opts) or {
+			eprintln('flowkit: error: ${err.msg()}')
+			return 1
+		}
+	} else {
+		flowkit.discover(o.input, opts) or {
+			eprintln('flowkit: error: ${err.msg()}')
+			return 1
+		}
 	}
 
 	if !o.quiet {

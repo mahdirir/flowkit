@@ -66,6 +66,31 @@ pub fn discover(path string, opts Options) !pl.Result {
 	return pipe.run()
 }
 
+// discover_heuristic_log reads a log and discovers a model with the
+// frequency-based heuristic miner.
+pub fn discover_heuristic_log(path string, threshold f64, opts Options) !pl.Result {
+	log := if path.ends_with('.xes') {
+		io.read_xes(path)!
+	} else {
+		io.read_csv(path, model.ReadOptions{ delimiter: opts.delimiter, header: opts.header })!
+	}
+	fp := analysis.build_footprint(log)
+	mut filtered := log
+	for filter in opts.filters {
+		filtered = analysis.filter(filtered, filter)
+	}
+	net := discovery.discover_heuristic(filtered, fp, threshold)
+	return pl.Result{
+		log:       filtered
+		footprint: fp
+		net:       net
+		stats:     analysis.compute_stats(filtered)
+		quality:   evaluation.evaluate(filtered, net)
+		report:    conformance.check_footprints(filtered, net)
+		dfg:       analysis.build_dfg(filtered, opts.min_count)
+	}
+}
+
 pub fn new_pipeline(log model.EventLog) pl.Pipeline {
 	return pl.new(log)
 }

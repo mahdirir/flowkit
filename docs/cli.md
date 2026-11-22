@@ -34,6 +34,8 @@ Progress goes to stderr; results go to stdout or `--output`.
 | `--activity-col N` | Activity column (default 3) |
 | `--no-header` | First row is data |
 | `--method NAME` | `alpha` or `alpha+` |
+| `--heuristic` | Use the heuristic miner instead of α |
+| `--threshold N` | Heuristic dependency threshold (default 0.5) |
 | `--min-count N` | Minimum DFG edge frequency |
 | `--max-variants N` | Keep only the N most frequent variants |
 | `--conformance` | Print replay, alignment, precision and generalization |

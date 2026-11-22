@@ -33,7 +33,7 @@ net := flowkit.discover_net(log, fp, .alpha)
 | `flowkit.model` | `Event`, `Trace`, `EventLog`, `Footprint`, `PetriNet`, `Place`, `Arc`, `Dfg`, `Stats`, `Relation` |
 | `flowkit.io` | `read_csv`, `parse_csv`, `read_xes`, `write_xes` |
 | `flowkit.analysis` | `build_footprint`, `compute_stats`, `build_dfg`, `filter` |
-| `flowkit.discovery` | `discover`, `Method.alpha`, `Method.alpha_plus` |
+| `flowkit.discovery` | `discover`, `discover_heuristic`, `Method.alpha`, `Method.alpha_plus` |
 | `flowkit.conformance` | `check_footprints` |
 | `flowkit.evaluation` | `evaluate` |
 | `flowkit.export` | `render_text`, `render_json`, `render_dot`, `render_pnml` |

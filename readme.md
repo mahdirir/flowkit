@@ -17,7 +17,7 @@ dependencies.
 - **Ingest** CSV (streamed, configurable columns) and XES 1.0 event logs
 - **Inspect** statistics: cases, events, activities, variants, frequencies, rework
 - **Filter** by time, activities, case size, frequency and top variants
-- **Discover** Petri nets with the α-algorithm or α+ (short loops)
+- **Discover** Petri nets with α, α+ (short loops) or the frequency-based heuristic miner
 - **Evaluate** token replay, bounded alignments, escaping-edge precision, generalization and simplicity
 - **Export** text, JSON, Graphviz DOT, PNML and XES
 - **Compose** all of the above through a pipeline API or the CLI
@@ -93,6 +93,8 @@ flowkit completions <bash|zsh|powershell>
       --activity-col N   Activity column, 0-based (default: 3)
       --no-header        First row is data, not a header
       --method NAME      alpha or alpha+ (default: alpha)
+      --heuristic        Use the frequency-based heuristic miner
+      --threshold N      Heuristic dependency threshold (default: 0.5)
       --min-count N      Minimum DFG edge frequency (default: 1)
       --max-variants N   Keep the N most frequent variants
       --conformance      Print replay, alignment, precision and generalization
