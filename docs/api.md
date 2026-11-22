@@ -41,6 +41,7 @@ net := flowkit.discover_net(log, fp, .alpha)
 | `flowkit.process` | `ProcessTree`, `from_log`, `to_petri`, `render_bpmn` |
 | `flowkit.streaming` | `StreamStats`, `push`, `follow_csv`, `dfg` |
 | `flowkit.ml` | `one_hot`, `count2vec`, `ngram`, `tfidf`, `to_csv`, `to_json` |
+| `flowkit.ocel` | `read_ocel_json`, `flatten`, `object_types`, `object_type_graph`, `ocdfg`, `write_ocel_json` |
 
 ## Key types
 

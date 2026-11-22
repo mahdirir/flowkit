@@ -35,6 +35,8 @@ mut:
 	dry_run      bool
 	conformance  bool
 	encode       string
+	object_type  string
+	ocel_types   bool
 	ngram        int = 2
 	stream       bool
 	quiet        bool
@@ -185,6 +187,11 @@ fn parse(args []string) Outcome {
 			i++
 			continue
 		}
+		if arg == '--ocel-types' {
+			o.ocel_types = true
+			i++
+			continue
+		}
 		if arg == '--stream' {
 			o.stream = true
 			i++
@@ -274,6 +281,12 @@ fn parse(args []string) Outcome {
 				o.method = parse_method(v) or { return usage(o, 'invalid method "${v}" (alpha, alpha+)') }
 				i = next
 			}
+			'--object-type' {
+				v, next, ok := value_for(args, i, inline)
+				if !ok { return usage(o, '${key} requires a value') }
+				o.object_type = v
+				i = next
+			}
 			'--encode' {
 				v, next, ok := value_for(args, i, inline)
 				if !ok { return usage(o, '${key} requires a value') }
@@ -351,6 +364,8 @@ fn help() {
 	println('      --explain          Explain each step in the output')
 	println('      --conformance      Print replay, alignment, precision and generalization')
 	println('      --stream           Stream events and report DFG statistics only')
+	println('      --object-type NAME Object type to project from an OCEL log')
+	println('      --ocel-types       List object types and their co-occurrence graph')
 	println('      --encode NAME      Feature encoding: onehot, count, ngram, tfidf')
 	println('      --ngram N          N-gram size (default: 2)')
 	println('      --dry-run          Validate input without writing output')
@@ -396,6 +411,25 @@ fn execute(action Action, o Options) int {
 	if o.max_variants > 0 {
 		filters << flowkit.Filter{ max_variants: o.max_variants }
 	}
+	if o.ocel_types {
+		olog := flowkit.read_ocel(o.input) or {
+			eprintln('flowkit: error: ${err.msg()}')
+			return 1
+		}
+		mut lines := []string{}
+		lines << 'Object types:'
+		for t in flowkit.ocel_object_types(olog) {
+			lines << '  ${t}'
+		}
+		lines << ''
+		lines << 'Object type graph:'
+		for edge in flowkit.ocel_type_graph(olog) {
+			lines << '  ${edge.first} <-> ${edge.second}: ${edge.count}'
+		}
+		print(lines.join('\n') + '\n')
+		return 0
+	}
+
 	if o.stream {
 		stats := flowkit.stream_csv(o.input, flowkit.ReadOptions{
 			delimiter: o.delimiter
@@ -431,7 +465,12 @@ fn execute(action Action, o Options) int {
 		delimiter: o.delimiter
 		header:    o.header
 	}
-	result := if o.heuristic {
+	result := if o.input.ends_with('.json') || o.input.ends_with('.jsonocel') {
+		flowkit.discover_ocel(o.input, o.object_type, opts) or {
+			eprintln('flowkit: error: ${err.msg()}')
+			return 1
+		}
+	} else if o.heuristic {
 		flowkit.discover_heuristic_log(o.input, o.threshold, opts) or {
 			eprintln('flowkit: error: ${err.msg()}')
 			return 1

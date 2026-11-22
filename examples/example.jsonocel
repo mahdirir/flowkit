@@ -1,0 +1,13 @@
+{
+  "events": [
+    {"id":"e1","type":"Create Order","time":"2024-01-01T08:00:00Z","relationships":[{"objectId":"o1","objectType":"Order","qualifier":"order"},{"objectId":"p1","objectType":"Product","qualifier":"product"}]},
+    {"id":"e2","type":"Pay","time":"2024-01-01T09:00:00Z","relationships":[{"objectId":"o1","objectType":"Order","qualifier":"order"}]},
+    {"id":"e3","type":"Create Order","time":"2024-01-02T08:00:00Z","relationships":[{"objectId":"o2","objectType":"Order","qualifier":"order"}]},
+    {"id":"e4","type":"Pay","time":"2024-01-02T09:00:00Z","relationships":[{"objectId":"o2","objectType":"Order","qualifier":"order"}]}
+  ],
+  "objects": [
+    {"id":"o1","type":"Order"},
+    {"id":"o2","type":"Order"},
+    {"id":"p1","type":"Product"}
+  ]
+}

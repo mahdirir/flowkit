@@ -14,7 +14,7 @@ dependencies.
 
 ## What it does
 
-- **Ingest** CSV (streamed, configurable columns) and XES 1.0 event logs
+- **Ingest** CSV (streamed, configurable columns), XES 1.0 and OCEL 2.0 object-centric logs
 - **Inspect** statistics: cases, events, activities, variants, frequencies, rework
 - **Filter** by time, activities, case size, frequency and top variants
 - **Discover** Petri nets with α, α+ (short loops) or the frequency-based heuristic miner
@@ -58,6 +58,8 @@ flowkit convert -i log.xes -f pnml -o model.pnml
 flowkit -i log.xes -f bpmn -o model.bpmn
 flowkit -i huge.csv --stream
 flowkit -i log.csv --encode tfidf -o features.csv
+flowkit --ocel-types -i example.jsonocel
+flowkit -i example.jsonocel --object-type Order
 ```
 
 ## Use as a V library
@@ -104,6 +106,8 @@ flowkit completions <bash|zsh|powershell>
       --stream           Stream events and report DFG statistics only
       --encode NAME      Feature encoding: onehot, count, ngram, tfidf
       --ngram N          N-gram size (default: 2)
+      --object-type NAME Object type to project from an OCEL log
+      --ocel-types       List object types and their co-occurrence graph
       --min-count N      Minimum DFG edge frequency (default: 1)
       --max-variants N   Keep the N most frequent variants
       --conformance      Print replay, alignment, precision and generalization
@@ -132,6 +136,7 @@ flowkit/
   process/      process trees, Petri net and BPMN conversion
   streaming/    incremental event and DFG counters
   ml/           one-hot, count, n-gram and TF-IDF encodings
+  ocel/         object-centric logs, flattening and OC-DFG
   pipeline/     stage composition
 cmd/flowkit/    CLI
 benchmarks/     reproducible throughput harness

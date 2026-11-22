@@ -30,6 +30,8 @@ Progress goes to stderr; results go to stdout or `--output`.
 | `--stream` | Stream events and print DFG statistics |
 | `--encode NAME` | Feature encoding: `onehot`, `count`, `ngram`, `tfidf` |
 | `--ngram N` | N-gram size (default 2) |
+| `--object-type NAME` | Project an OCEL log onto one object type |
+| `--ocel-types` | List object types and their co-occurrence graph |
 | `-d, --delimiter CHAR` | CSV delimiter or `tab` (default `;`) |
 | `--case-col N` | Case-id column (default 0) |
 | `--time-col N` | Timestamp column (default 1) |

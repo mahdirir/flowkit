@@ -21,6 +21,7 @@ import flowkit.pipeline as pl
 import flowkit.process
 import flowkit.streaming
 import flowkit.ml
+import flowkit.ocel
 
 pub const version = '1.1.0'
 
@@ -218,4 +219,36 @@ pub fn features_csv(features ml.Features) string {
 
 pub fn features_json(features ml.Features) string {
 	return ml.to_json(features)
+}
+
+pub fn read_ocel(path string) !ocel.OcelLog {
+	return ocel.read_ocel_json(path)
+}
+
+pub fn ocel_object_types(log ocel.OcelLog) []string {
+	return ocel.object_types(log)
+}
+
+pub fn ocel_type_graph(log ocel.OcelLog) []ocel.TypeRelation {
+	return ocel.object_type_graph(log)
+}
+
+pub fn flatten_ocel(log ocel.OcelLog, object_type string) !model.EventLog {
+	return ocel.flatten(log, object_type)
+}
+
+pub fn ocel_dfg(log ocel.OcelLog, object_type string, min_count u32) model.Dfg {
+	return ocel.ocdfg(log, object_type, min_count)
+}
+
+// discover_ocel reads an object-centric log and discovers a model after
+// projecting it onto one object type.
+pub fn discover_ocel(path string, object_type string, opts Options) !pl.Result {
+	olog := ocel.read_ocel_json(path)!
+	log := ocel.flatten(olog, object_type)!
+	mut pipe := pl.new(log).with_method(opts.method).with_min_count(opts.min_count)
+	for filter in opts.filters {
+		pipe = pipe.with_filter(filter)
+	}
+	return pipe.run()
 }
