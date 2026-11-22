@@ -335,7 +335,7 @@ fn help() {
 	println('Options:')
 	println('  -i, --input FILE       Log file: .csv or .xes (default: dataset.csv)')
 	println('  -o, --output FILE      Write to file (default: stdout)')
-	println('  -f, --format FORMAT    text, json, dot, pnml, xes (default: text)')
+	println('  -f, --format FORMAT    text, json, dot, pnml, bpmn, xes (default: text)')
 	println('  -d, --delimiter CHAR   CSV delimiter, or "tab" (default: ;)')
 	println('      --case-col N       Case-id column, 0-based (default: 0)')
 	println('      --time-col N       Timestamp column, 0-based (default: 1)')
