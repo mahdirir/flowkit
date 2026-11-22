@@ -4,84 +4,50 @@ title: Library API
 
 # Library API
 
-The V module is named `alpha`. Add this repository as a dependency, then:
-
 ```v
-import alpha
+import flowkit
 ```
 
-## Discovery pipeline
+## Three levels
 
 ```v
-// Read a log and discover the net in one call.
-result := alpha.analyze('log.csv', alpha.CsvOptions{ delimiter: `,` })!
+// 1. One call.
+result := flowkit.discover('log.xes')!
 
-// Or run each stage yourself.
-log := alpha.read_eventlog_csv('log.csv', alpha.CsvOptions{})!
-footprint := alpha.build_footprint(log)
-net := alpha.discover_net(log, footprint)
+// 2. Composed pipeline.
+log := flowkit.read_csv('log.csv', flowkit.ReadOptions{ delimiter: `,` })!
+result2 := flowkit.new_pipeline(log)
+	.with_method(.alpha_plus)
+	.with_filter(flowkit.Filter{ min_activity_count: 5 })
+	.run()
+
+// 3. Raw building blocks.
+fp := flowkit.build_footprint(log)
+net := flowkit.discover_net(log, fp, .alpha)
 ```
 
-## Types
+## Packages
 
-### CsvOptions
+| Package | Contents |
+|---|---|
+| `flowkit.model` | `Event`, `Trace`, `EventLog`, `Footprint`, `PetriNet`, `Place`, `Arc`, `Dfg`, `Stats`, `Relation` |
+| `flowkit.io` | `read_csv`, `parse_csv`, `read_xes`, `write_xes` |
+| `flowkit.analysis` | `build_footprint`, `compute_stats`, `build_dfg`, `filter` |
+| `flowkit.discovery` | `discover`, `Method.alpha`, `Method.alpha_plus` |
+| `flowkit.conformance` | `check_footprints` |
+| `flowkit.evaluation` | `evaluate` |
+| `flowkit.export` | `render_text`, `render_json`, `render_dot`, `render_pnml` |
+| `flowkit.pipeline` | `Pipeline`, `Result` |
 
-| Field | Type | Default | Meaning |
-|---|---|---|---|
-| `delimiter` | `u8` | `;` | CSV delimiter |
-| `case_col` | `int` | `0` | case-id column |
-| `time_col` | `int` | `1` | timestamp column |
-| `event_col` | `int` | `2` | event-id column |
-| `activity_col` | `int` | `3` | activity column |
-| `header` | `bool` | `true` | skip the first row |
+## Key types
 
-### EventLog
-
-- `read_eventlog_csv(path, opts) !EventLog` — read a file.
-- `parse_csv(content, opts) !EventLog` — read from a string.
-- `trace(id) ?Trace` — look up one case.
-- `trace_count()`, `activity_count()`, `event_count()` — sizes.
-- Fields: `traces map[string]Trace`, `activities []string`.
-
-### Trace
-
-- `event_list() []Event` — events in chronological order.
-- Field: `id string`.
-
-### Event
-
-- Fields: `id`, `activity`, `time`, `sort_key`.
-- `same_activity(other) bool`.
-
-### Footprint
-
-- `build_footprint(log) Footprint`.
-- `relation(a, b) Relation` — `.causality`, `.concurrency` or `.conflict`.
-- `Relation.str()` — `->`, `||` or `#`.
-
-### PetriNet
-
-- `discover_net(log, footprint) PetriNet`.
-- Fields: `start_activities`, `end_activities`, `places`, `arcs`.
-- `Place` exposes `inputs` and `outputs`; `Place.valid(footprint)` checks a place.
-- `Arc` exposes `transition`, `place` and `is_input`.
-
-### Analysis
-
-`Analysis` bundles `eventlog`, `footprint` and `net`. It is what `analyze`
-returns and what the renderers accept.
-
-## Renderers
-
-```v
-text := alpha.render_text(result, alpha.TextOptions{ summary_only: false })
-json := alpha.render_json(result)
-dot := alpha.render_dot(result)
-```
-
-`alpha.version` holds the current version string.
+- `EventLog` — `trace_count()`, `activity_count()`, `event_count()`, `trace(id)`, `activity_names()`
+- `Footprint` — `relation(a, b)`, `relation_id(i, j)`, `direct_id(i, j)`, `activity_names()`
+- `PetriNet` — `places`, `arcs`, `start_activities`, `end_activities`
+- `Result` — `log`, `footprint`, `net`, `stats`, `quality`, `report`, `dfg`
+- `Quality` — `fitness_proxy`, `precision_proxy`, `simplicity`, `arc_degree`
 
 ## Error handling
 
-Discovery functions return V results (`!T`). Malformed rows carry the row
-number; unreadable files carry the path and the underlying OS error.
+All readers and the top-level `discover` return V results (`!T`). Errors carry
+the file path and row number where possible.

@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: vlang/setup-v@v1
+        with:
+          version: '0.5.2'
+      - name: Format check
+        run: v fmt -check flowkit cmd benchmarks
+      - name: Vet
+        run: v vet ./flowkit ./cmd/flowkit
+      - name: Tests
+        run: v test ./flowkit ./cmd/flowkit
+      - name: Build
+        run: v build -o flowkit${{ runner.os == 'Windows' && '.exe' || '' }} ./cmd/flowkit
+      - name: Smoke test
+        run: ./flowkit stats -i examples/tiny.csv -d , --quiet
+      - name: Benchmark
+        run: v run benchmarks/bench.v -- examples/tiny.csv

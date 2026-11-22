@@ -1,77 +1,55 @@
 ---
-title: alpha-miner
+title: flowkit
 ---
 
-# alpha-miner
+# flowkit
 
-**Process discovery from activity logs, in V.**
+**Process mining and activity log processing in V.**
 
-`alpha-miner` turns a delimited event log into a Petri net using the
-process-mining α-algorithm. It ships as both an importable V library (`alpha`)
-and a single-binary CLI (`alpha-miner`), with no runtime dependencies.
+`flowkit` is a VPM package and a single-binary CLI for the full activity-log
+lifecycle: ingest → inspect → filter → discover → evaluate → export.
 
-- Read CSV logs with configurable delimiters and column layouts
-- Compute a footprint of causality, concurrency and never-follow relations
-- Discover maximal places without enumerating the powerset of activities
-- Export to human-readable text, JSON, or Graphviz DOT
-- Verify the model against the footprint before emitting it
+- Streamed CSV with configurable columns; XES 1.0 import and export
+- Statistics, variants, frequencies and rework detection
+- Filtering by time, activity, case size, frequency and top variants
+- Petri net discovery with α and α+ (short loops)
+- Footprint conformance and fitness/precision/simplicity proxies
+- Text, JSON, Graphviz DOT, PNML and XES output
+- Three API levels: one-call, pipeline and raw building blocks
+
+## Install
+
+```bash
+v install metif12.flowkit
+```
+
+```bash
+git clone https://github.com/metif12/flowkit.git
+cd flowkit
+v build -o flowkit ./cmd/flowkit
+```
 
 ## Quick start
 
 ```bash
-git clone https://github.com/metif12/alpha-miner.git
-cd alpha-miner
-v build -o alpha-miner ./cmd/alpha-miner
-./alpha-miner --help
-./alpha-miner -i dataset.csv -f dot -o net.dot
+flowkit discover -i dataset.csv --summary-only
+flowkit stats -i examples/tiny.csv -d ,
+flowkit -i examples/simple.csv -d , -f dot -o net.dot
+flowkit convert -i log.xes -f pnml -o model.pnml
 ```
 
-## A tiny example
-
-```csv
-case,time,event,activity
-t1,2024-01-01 08:00:00,e1,A
-t1,2024-01-01 08:01:00,e2,B
-t2,2024-01-01 09:00:00,e3,A
-t2,2024-01-01 09:01:00,e4,B
-```
-
-```bash
-alpha-miner -d , -i examples/tiny.csv
-```
-
-```text
-Traces:           2
-Activities:       2
-Places:           3
-Arcs:             4
-
-Start activities: A
-End activities:   B
-
-Footprint (# never follows, -> causality, || concurrency):
-  A: #  ->
-  B: #  #
-
-Places:
-  p0: {A} -> {B}
-  p1: {} -> {A}
-  p2: {B} -> {}
-...
-```
-
-## Use it as a library
+## Library
 
 ```v
-import alpha
+import flowkit
 
-result := alpha.analyze('log.csv', alpha.CsvOptions{ delimiter: `,` })!
-println(alpha.render_json(result))
+result := flowkit.discover('log.xes')!
+println(flowkit.render_json(result))
 ```
 
-## Read more
+## Learn more
 
 - [CLI reference](cli.md)
 - [Library API](api.md)
-- [The algorithm and its limits](algorithm.md)
-- [Source repository](https://github.com/metif12/alpha-miner)
+- [Algorithm and internals](algorithm.md)
+- [Source](https://github.com/metif12/flowkit)
