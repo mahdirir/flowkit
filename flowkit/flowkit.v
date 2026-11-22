@@ -18,6 +18,9 @@ import flowkit.conformance
 import flowkit.evaluation
 import flowkit.export
 import flowkit.pipeline as pl
+import flowkit.process
+import flowkit.streaming
+import flowkit.ml
 
 pub const version = '1.1.0'
 
@@ -35,6 +38,7 @@ pub type Method = discovery.Method
 pub type Filter = analysis.Filter
 pub type Result = pl.Result
 pub type TextOptions = export.TextOptions
+pub type ReadOptions = model.ReadOptions
 pub type Quality = evaluation.Quality
 pub type ConformanceReport = conformance.Report
 pub type ReplayResult = conformance.ReplayResult
@@ -181,4 +185,37 @@ pub fn render_pnml(result pl.Result) string {
 
 pub fn write_file(path string, content string) ! {
 	return export.write_file(path, content)
+}
+
+pub fn process_tree(log model.EventLog) process.ProcessTree {
+	return process.from_log(log)
+}
+
+pub fn tree_to_petri(tree process.ProcessTree) model.PetriNet {
+	return process.to_petri(tree)
+}
+
+pub fn render_bpmn(tree process.ProcessTree) string {
+	return process.render_bpmn(tree)
+}
+
+pub fn stream_csv(path string, opts model.ReadOptions) !streaming.StreamStats {
+	return streaming.follow_csv(path, opts)
+}
+
+pub fn encode(log model.EventLog, kind string, n int) ml.Features {
+	match kind {
+		'count', 'count2vec' { return ml.count2vec(log) }
+		'ngram' { return ml.ngram(log, if n > 0 { n } else { 2 }) }
+		'tfidf' { return ml.tfidf(log) }
+		else { return ml.one_hot(log) }
+	}
+}
+
+pub fn features_csv(features ml.Features) string {
+	return ml.to_csv(features)
+}
+
+pub fn features_json(features ml.Features) string {
+	return ml.to_json(features)
 }

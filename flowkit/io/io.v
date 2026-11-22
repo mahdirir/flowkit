@@ -7,7 +7,7 @@ import time
 import encoding.csv
 import flowkit.model
 
-fn parse_timestamp(raw string) !time.Time {
+pub fn parse_timestamp(raw string) !time.Time {
 	s := raw.trim_space()
 	if s.len < 19 {
 		return error('unsupported timestamp "${s}"')

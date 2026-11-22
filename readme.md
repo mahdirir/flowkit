@@ -19,7 +19,10 @@ dependencies.
 - **Filter** by time, activities, case size, frequency and top variants
 - **Discover** Petri nets with α, α+ (short loops) or the frequency-based heuristic miner
 - **Evaluate** token replay, bounded alignments, escaping-edge precision, generalization and simplicity
-- **Export** text, JSON, Graphviz DOT, PNML and XES
+- **Convert** process trees to Petri nets and BPMN 2.0
+- **Stream** very large logs with incremental DFG statistics
+- **Encode** cases as one-hot, count, n-gram or TF-IDF feature tables
+- **Export** text, JSON, Graphviz DOT, PNML, BPMN and XES
 - **Compose** all of the above through a pipeline API or the CLI
 
 ## Install
@@ -52,6 +55,9 @@ flowkit -i examples/simple.csv -d , -f dot -o net.dot
 
 # XES in, PNML out
 flowkit convert -i log.xes -f pnml -o model.pnml
+flowkit -i log.xes -f bpmn -o model.bpmn
+flowkit -i huge.csv --stream
+flowkit -i log.csv --encode tfidf -o features.csv
 ```
 
 ## Use as a V library
@@ -85,7 +91,7 @@ flowkit completions <bash|zsh|powershell>
 
   -i, --input FILE       Log file: .csv or .xes (default: dataset.csv)
   -o, --output FILE      Write to file (default: stdout)
-  -f, --format FORMAT    text, json, dot, pnml, xes (default: text)
+  -f, --format FORMAT    text, json, dot, pnml, bpmn, xes (default: text)
   -d, --delimiter CHAR   CSV delimiter, or "tab" (default: ;)
       --case-col N       Case-id column, 0-based (default: 0)
       --time-col N       Timestamp column, 0-based (default: 1)
@@ -95,6 +101,9 @@ flowkit completions <bash|zsh|powershell>
       --method NAME      alpha or alpha+ (default: alpha)
       --heuristic        Use the frequency-based heuristic miner
       --threshold N      Heuristic dependency threshold (default: 0.5)
+      --stream           Stream events and report DFG statistics only
+      --encode NAME      Feature encoding: onehot, count, ngram, tfidf
+      --ngram N          N-gram size (default: 2)
       --min-count N      Minimum DFG edge frequency (default: 1)
       --max-variants N   Keep the N most frequent variants
       --conformance      Print replay, alignment, precision and generalization
@@ -120,6 +129,9 @@ flowkit/
   conformance/  footprint comparison log vs model
   evaluation/   quality proxies
   export/       text, JSON, DOT, PNML
+  process/      process trees, Petri net and BPMN conversion
+  streaming/    incremental event and DFG counters
+  ml/           one-hot, count, n-gram and TF-IDF encodings
   pipeline/     stage composition
 cmd/flowkit/    CLI
 benchmarks/     reproducible throughput harness

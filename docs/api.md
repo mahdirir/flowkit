@@ -38,6 +38,9 @@ net := flowkit.discover_net(log, fp, .alpha)
 | `flowkit.evaluation` | `evaluate` |
 | `flowkit.export` | `render_text`, `render_json`, `render_dot`, `render_pnml` |
 | `flowkit.pipeline` | `Pipeline`, `Result` |
+| `flowkit.process` | `ProcessTree`, `from_log`, `to_petri`, `render_bpmn` |
+| `flowkit.streaming` | `StreamStats`, `push`, `follow_csv`, `dfg` |
+| `flowkit.ml` | `one_hot`, `count2vec`, `ngram`, `tfidf`, `to_csv`, `to_json` |
 
 ## Key types
 

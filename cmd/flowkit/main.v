@@ -34,6 +34,9 @@ mut:
 	explain      bool
 	dry_run      bool
 	conformance  bool
+	encode       string
+	ngram        int = 2
+	stream       bool
 	quiet        bool
 	verbose      bool
 }
@@ -105,6 +108,7 @@ fn parse_format(s string) ?string {
 		'json' { return 'json' }
 		'dot', 'gv', 'graphviz' { return 'dot' }
 		'pnml' { return 'pnml' }
+		'bpmn' { return 'bpmn' }
 		'xes' { return 'xes' }
 		else { return none }
 	}
@@ -178,6 +182,11 @@ fn parse(args []string) Outcome {
 		}
 		if arg == '--explain' {
 			o.explain = true
+			i++
+			continue
+		}
+		if arg == '--stream' {
+			o.stream = true
 			i++
 			continue
 		}
@@ -265,6 +274,18 @@ fn parse(args []string) Outcome {
 				o.method = parse_method(v) or { return usage(o, 'invalid method "${v}" (alpha, alpha+)') }
 				i = next
 			}
+			'--encode' {
+				v, next, ok := value_for(args, i, inline)
+				if !ok { return usage(o, '${key} requires a value') }
+				o.encode = v
+				i = next
+			}
+			'--ngram' {
+				v, next, ok := value_for(args, i, inline)
+				if !ok { return usage(o, '${key} requires a value') }
+				o.ngram = nonnegative(v) or { return usage(o, '${key} expects a non-negative integer') }
+				i = next
+			}
 			'--threshold' {
 				v, next, ok := value_for(args, i, inline)
 				if !ok { return usage(o, '${key} requires a value') }
@@ -329,6 +350,9 @@ fn help() {
 	println('      --summary-only     Counts and quality only')
 	println('      --explain          Explain each step in the output')
 	println('      --conformance      Print replay, alignment, precision and generalization')
+	println('      --stream           Stream events and report DFG statistics only')
+	println('      --encode NAME      Feature encoding: onehot, count, ngram, tfidf')
+	println('      --ngram N          N-gram size (default: 2)')
 	println('      --dry-run          Validate input without writing output')
 	println('  -q, --quiet            Suppress progress messages')
 	println('  -v, --verbose          Print extra detail')
@@ -372,6 +396,34 @@ fn execute(action Action, o Options) int {
 	if o.max_variants > 0 {
 		filters << flowkit.Filter{ max_variants: o.max_variants }
 	}
+	if o.stream {
+		stats := flowkit.stream_csv(o.input, flowkit.ReadOptions{
+			delimiter: o.delimiter
+			header:    o.header
+		}) or {
+			eprintln('flowkit: error: ${err.msg()}')
+			return 1
+		}
+		mut lines := []string{}
+		lines << 'flowkit stream summary'
+		lines << 'Events:     ${stats.events}'
+		lines << 'Cases:      ${stats.case_count()}'
+		lines << 'Activities: ${stats.activity_count()}'
+		lines << ''
+		lines << 'Top activities:'
+		for name in stats.top_activities(12) {
+			lines << '  ${name}: ${stats.activities[name]}'
+		}
+		lines << ''
+		lines << 'Directly-follows graph:'
+		dfg := stats.dfg(o.min_count)
+		for edge in dfg.edges {
+			lines << '  ${edge.from} -> ${edge.to}: ${edge.count}'
+		}
+		print(lines.join('\n') + '\n')
+		return 0
+	}
+
 	opts := flowkit.Options{
 		method:    o.method
 		min_count: o.min_count
@@ -414,6 +466,7 @@ fn execute(action Action, o Options) int {
 		'json' { flowkit.render_json(result) }
 		'dot' { flowkit.render_dot(result) }
 		'pnml' { flowkit.render_pnml(result) }
+		'bpmn' { flowkit.render_bpmn(flowkit.process_tree(result.log)) }
 		'xes' {
 			if o.output == '' {
 				return fail('format xes requires --output')
@@ -429,6 +482,14 @@ fn execute(action Action, o Options) int {
 				summary_only: o.summary_only || action == .stats
 				explain:      o.explain
 			})
+		}
+	}
+	if o.encode != '' {
+		features := flowkit.encode(result.log, o.encode, o.ngram)
+		output = if o.format == 'json' {
+			flowkit.features_json(features)
+		} else {
+			flowkit.features_csv(features)
 		}
 	}
 	if o.conformance && (o.format == 'text' || o.format == 'txt') {
