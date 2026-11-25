@@ -41,7 +41,7 @@ result := flowkit.run(mut reg, mut ctx)!
 ```
 
 A full example package — custom reader, algorithm and hook — lives in
-[`examples/plugins/custom.v`](https://github.com/metif12/flowkit/blob/main/examples/plugins/custom.v),
+[`examples/plugins/custom.v`](https://github.com/mahdir-ir/flowkit/blob/main/examples/plugins/custom.v),
 with a test that registers it.
 
 ## External command hooks
@@ -56,7 +56,7 @@ flowkit writes a flat JSON context file with a UUID-based name in the system
 temp directory and passes its path as the final argument. The program edits the
 file in place; recognised keys (`path`, `output`, `rendered` and any metadata
 keys) are read back into the context. See
-[`examples/plugins/annotate.py`](https://github.com/metif12/flowkit/blob/main/examples/plugins/annotate.py).
+[`examples/plugins/annotate.py`](https://github.com/mahdir-ir/flowkit/blob/main/examples/plugins/annotate.py).
 
 Commands are split on spaces and executed via an argument array without a
 shell. Hooks are opt-in; no external program runs unless you register one.

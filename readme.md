@@ -2,14 +2,14 @@
 
 [![V](https://img.shields.io/badge/V-0.5.2-5d87bf.svg)](https://vlang.io/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![vpm](https://img.shields.io/badge/vpm-metif12.flowkit-blue.svg)](https://vpm.vlang.io/)
+[![vpm](https://img.shields.io/badge/vpm-mahdir-ir.flowkit-blue.svg)](https://vpm.vlang.io/)
 
 **Process mining and activity log processing, in V.**
 
 `flowkit` turns activity logs into Petri nets and analysis results. It is a VPM
-package (`metif12.flowkit`) and a single-binary CLI, with no runtime dependencies.
+package (`mahdir-ir.flowkit`) and a single-binary CLI, with no runtime dependencies.
 
-📖 **Documentation:** <https://metif12.github.io/flowkit/>
+📖 **Documentation:** <https://mahdir-ir.github.io/flowkit/>
 
 ## What it does
 
@@ -30,13 +30,13 @@ package (`metif12.flowkit`) and a single-binary CLI, with no runtime dependencie
 Once registered on VPM:
 
 ```bash
-v install metif12.flowkit
+v install mahdir-ir.flowkit
 ```
 
 Until then, build from source:
 
 ```bash
-git clone https://github.com/metif12/flowkit.git
+git clone https://github.com/mahdir-ir/flowkit.git
 cd flowkit
 v build -o flowkit ./cmd/flowkit
 ```
